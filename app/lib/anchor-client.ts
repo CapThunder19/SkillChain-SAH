@@ -51,7 +51,7 @@ export async function createTutorProfile(
     .accountsPartial({
       tutor: tutorPda,
       user: userPublicKey,
-      systemProgram: SystemProgram.programId,
+      system_program: SystemProgram.programId,
     })
     .rpc();
     
