@@ -47,7 +47,7 @@ export async function createTutorProfile(
   const [tutorPda] = getTutorPDA(userPublicKey);
   
   const tx = await program.methods
-    .createTutor(subject)
+    .create_tutor(subject)
     .accountsPartial({
       tutor: tutorPda,
       user: userPublicKey,
@@ -67,7 +67,7 @@ export async function updateProgress(
   const [tutorPda] = getTutorPDA(userPublicKey);
   
   const tx = await program.methods
-    .updateProgress(level, milestoneHash)
+    .update_progress(level, milestoneHash)
     .accountsPartial({
       tutor: tutorPda,
       owner: userPublicKey,
