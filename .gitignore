@@ -70,3 +70,6 @@ dev-log.txt
 *.keypair.json
 !target/deploy/*.json
 !target/idl/*.json
+
+# Allow IDL in app directory
+!app/lib/idl/*.json

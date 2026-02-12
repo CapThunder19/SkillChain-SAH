@@ -344,6 +344,28 @@ anchor deploy
 - Check if Metaplex program is available
 - Verify connection to Solana network
 
+### Build Errors (Module Not Found)
+If you get "Module not found" errors related to `tutor_project.json`:
+
+1. **Make sure IDL is synced**:
+```bash
+cd app
+./sync-idl.bat  # Windows
+./sync-idl.sh   # Linux/Mac
+```
+
+2. **Verify IDL file exists**:
+   - Check that `app/lib/idl/tutor_project.json` exists
+   - If missing, rebuild contracts: `anchor build`
+   - Then sync IDL again
+
+3. **Clear Next.js cache**:
+```bash
+cd app
+rm -rf .next
+npm run build
+```
+
 ## 📝 Environment Variables
 
 | Variable | Description | Required | Default |
@@ -355,15 +377,27 @@ anchor deploy
 
 ### Frontend (Vercel)
 1. Push code to GitHub
-2. Import project in Vercel
-3. Add environment variables
+2. Import project in Vercel (select the `app` directory as root)
+3. Add environment variables:
+   - `NEXT_PUBLIC_SOLANA_RPC_ENDPOINT`
+   - `GEMINI_API_KEY`
 4. Deploy
+
+**Note**: The IDL file is already included in `app/lib/idl/`. If you redeploy the smart contract, sync the new IDL:
+```bash
+cd app
+./sync-idl.bat  # Windows
+./sync-idl.sh   # Linux/Mac
+```
 
 ### Smart Contract (Mainnet)
 1. Change Anchor.toml cluster to `mainnet-beta`
-2. Update program ID
+2. Build: `anchor build`
 3. Deploy: `anchor deploy --provider.cluster mainnet`
-4. Update frontend with new program ID
+4. Copy new program ID from deployment
+5. Update `app/lib/constants.ts` with new PROGRAM_ID
+6. Sync new IDL: Run `cd app && ./sync-idl.bat` (Windows) or `./sync-idl.sh` (Linux/Mac)
+7. Commit and push changes
 
 ## 🤝 Contributing
 
