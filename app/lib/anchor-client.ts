@@ -29,8 +29,8 @@ export function getProgram(connection: Connection, wallet: any) {
   );
   setProvider(provider);
   
-  // Create program with IDL and program ID
-  return new Program(IDL as any, PROGRAM_ID, provider);
+  // Create program with IDL (address is in the IDL)
+  return new Program(IDL as any, provider);
 }
 
 export function getTutorPDA(userPublicKey: PublicKey): [PublicKey, number] {
