@@ -1,9 +1,9 @@
-import { Program, AnchorProvider, Idl, setProvider } from '@coral-xyz/anchor';
+import { Program, AnchorProvider, setProvider } from '@coral-xyz/anchor';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { PROGRAM_ID, RPC_ENDPOINT } from './constants';
-import IDL from './idl/tutor_project.json';
+import { IDL, TutorProject } from './idl/tutor_project';
 
-export function getProgram(connection: Connection, wallet: any) {
+export function getProgram(connection: Connection, wallet: any): Program<TutorProject> {
   // Create a proper wallet wrapper for Anchor Provider
   const walletAdapter = {
     get publicKey() {
@@ -29,7 +29,7 @@ export function getProgram(connection: Connection, wallet: any) {
   );
   setProvider(provider);
   
-  return new Program(IDL as unknown as Idl, provider);
+  return new Program(IDL as any, provider);
 }
 
 export function getTutorPDA(userPublicKey: PublicKey): [PublicKey, number] {
@@ -40,7 +40,7 @@ export function getTutorPDA(userPublicKey: PublicKey): [PublicKey, number] {
 }
 
 export async function createTutorProfile(
-  program: Program,
+  program: Program<TutorProject>,
   userPublicKey: PublicKey,
   subject: string
 ) {
@@ -59,7 +59,7 @@ export async function createTutorProfile(
 }
 
 export async function updateProgress(
-  program: Program,
+  program: Program<TutorProject>,
   userPublicKey: PublicKey,
   level: number,
   milestoneHash: number[]
@@ -77,11 +77,11 @@ export async function updateProgress(
   return tx;
 }
 
-export async function fetchTutorProfile(program: Program, userPublicKey: PublicKey) {
+export async function fetchTutorProfile(program: Program<TutorProject>, userPublicKey: PublicKey) {
   const [tutorPda] = getTutorPDA(userPublicKey);
   
   try {
-    const account = await program.account.tutor.fetch(tutorPda);
+    const account = await (program.account as any).tutor.fetch(tutorPda);
     return account;
   } catch (error) {
     return null;
