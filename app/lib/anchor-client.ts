@@ -1,7 +1,7 @@
 import { Program, AnchorProvider, setProvider } from '@coral-xyz/anchor';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { PROGRAM_ID, RPC_ENDPOINT } from './constants';
-import { IDL } from './idl/tutor_project';
+import IDLJson from './idl/tutor_project.json';
 
 export function getProgram(connection: Connection, wallet: any) {
   // Create a proper wallet wrapper for Anchor Provider
@@ -29,8 +29,8 @@ export function getProgram(connection: Connection, wallet: any) {
   );
   setProvider(provider);
   
-  // Create program with IDL (address is in the IDL)
-  return new Program(IDL as any, provider);
+  // Create program with JSON IDL
+  return new Program(IDLJson as any, provider);
 }
 
 export function getTutorPDA(userPublicKey: PublicKey): [PublicKey, number] {
