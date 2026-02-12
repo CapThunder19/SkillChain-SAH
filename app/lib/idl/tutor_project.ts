@@ -182,6 +182,6 @@ export const IDL = {
       }
     }
   ]
-} as const;
+};
 
 export type TutorProject = typeof IDL;
