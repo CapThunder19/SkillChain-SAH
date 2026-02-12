@@ -1,4 +1,4 @@
-import { Program, AnchorProvider, setProvider, Idl } from '@coral-xyz/anchor';
+import { Program, AnchorProvider, Idl } from '@coral-xyz/anchor';
 import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
 import { PROGRAM_ID, RPC_ENDPOINT } from './constants';
 import IDLJson from './idl/tutor_project.json';
@@ -28,9 +28,8 @@ export function getProgram(connection: Connection, wallet: any) {
     }
   );
   
-  // Create program with JSON IDL and explicit program ID
-  const programId = new PublicKey(IDLJson.address);
-  const program = new Program(IDLJson as Idl, programId, provider);
+  // Create program - address is in IDL
+  const program = new Program(IDLJson as Idl, provider);
   
   return program;
 }
