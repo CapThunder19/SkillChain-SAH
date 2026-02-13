@@ -49,11 +49,11 @@ export async function createTutorProfile(
   const [tutorPda] = getTutorPDA(userPublicKey);
   
   const tx = await program.methods
-    .create_tutor(subject)
+    .createTutor(subject)
     .accountsPartial({
       tutor: tutorPda,
       user: userPublicKey,
-      system_program: SystemProgram.programId,
+      systemProgram: SystemProgram.programId,
     })
     .rpc();
     
@@ -69,7 +69,7 @@ export async function updateProgress(
   const [tutorPda] = getTutorPDA(userPublicKey);
   
   const tx = await program.methods
-    .update_progress(level, milestoneHash)
+    .updateProgress(level, milestoneHash)
     .accountsPartial({
       tutor: tutorPda,
       owner: userPublicKey,

@@ -138,19 +138,10 @@ export default function TutorPage() {
     if (!publicKey || !wallet || !currentLesson) return;
     
     setLoading(true);
+    let nftResult: { signature: Uint8Array; mintAddress: any } | null = null;
+    
     try {
-      // 1. Mint NFT Achievement
-      console.log('Minting achievement NFT...');
-      const nftResult = await mintAchievementNFT(
-        connection,
-        wallet.adapter,
-        currentLesson.title,
-        currentLesson.id
-      );
-      
-      console.log('NFT Minted:', nftResult.mintAddress);
-      
-      // 2. Update progress on-chain
+      // 1. Update progress on-chain FIRST (most important)
       const newLevel = level + 1;
       const milestoneHash = generateMilestoneHash(currentLesson.id);
       
@@ -159,34 +150,72 @@ export default function TutorPage() {
       
       console.log('Progress updated:', signature);
       
-      // 3. Update local state
+      // 2. Update local state immediately
       setLevel(newLevel);
       setCourses((prevCourses) =>
         prevCourses.map((course) => ({
           ...course,
           lessons: course.lessons.map((l) =>
             l.id === currentLesson.id
-              ? { ...l, completed: true, nftMinted: true }
+              ? { ...l, completed: true, nftMinted: false }
               : l
           ),
         }))
       );
       
-      setAchievements((prev) => [
-        ...prev,
-        {
-          lesson: currentLesson.title,
-          mintAddress: nftResult.mintAddress.toString(),
-          timestamp: Date.now(),
-        },
-      ]);
-      
       toast.success('🎉 Lesson Completed!', {
-        description: `NFT Minted! New Level: ${newLevel}`,
+        description: `Level ${newLevel} achieved!`,
         duration: 4000,
       });
       
-      // Move to next lesson
+      // 3. Try to mint NFT (optional - don't fail if this doesn't work)
+      try {
+        console.log('Minting achievement NFT...');
+        nftResult = await mintAchievementNFT(
+          connection,
+          wallet.adapter,
+          currentLesson.title,
+          currentLesson.id
+        );
+        
+        console.log('NFT Minted:', nftResult.mintAddress);
+        
+        // Update NFT status
+        setCourses((prevCourses) =>
+          prevCourses.map((course) => ({
+            ...course,
+            lessons: course.lessons.map((l) =>
+              l.id === currentLesson.id
+                ? { ...l, nftMinted: true }
+                : l
+            ),
+          }))
+        );
+        
+        if (nftResult) {
+          setAchievements((prev) => [
+            ...prev,
+            {
+              lesson: currentLesson.title,
+              mintAddress: nftResult!.mintAddress.toString(),
+              timestamp: Date.now(),
+            },
+          ]);
+        }
+        
+        toast.success('🎨 NFT Minted!', {
+          description: 'Achievement NFT added to your wallet',
+          duration: 3000,
+        });
+      } catch (nftError: any) {
+        console.error('NFT minting failed (non-critical):', nftError);
+        toast.info('Lesson completed, but NFT minting skipped', {
+          description: 'You can still continue learning!',
+          duration: 3000,
+        });
+      }
+      
+      // 4. Move to next lesson
       const allLessons = courses.flatMap(c => c.lessons);
       const nextLesson = allLessons.find((l) => !l.completed && l.id > currentLesson.id);
       if (nextLesson) {
