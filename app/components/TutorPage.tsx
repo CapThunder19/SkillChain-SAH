@@ -26,12 +26,26 @@ export default function TutorPage() {
   const [level, setLevel] = useState(1);
   const [courses, setCourses] = useState<Course[]>(COURSES);
   const [selectedCategory, setSelectedCategory] = useState<string>('All courses');
+  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   useEffect(() => {
     if (publicKey && connected) {
       checkTutorProfile();
+      checkWalletBalance();
     }
   }, [publicKey, connected]);
+  
+  const checkWalletBalance = async () => {
+    if (!publicKey) return;
+    
+    try {
+      const balance = await connection.getBalance(publicKey);
+      setWalletBalance(balance / 1e9);
+      console.log('💰 Wallet balance:', balance / 1e9, 'SOL');
+    } catch (error) {
+      console.error('Error checking balance:', error);
+    }
+  };
 
   const checkTutorProfile = async () => {
     if (!publicKey || !wallet) return;
@@ -170,7 +184,10 @@ export default function TutorPage() {
       
       // 3. Try to mint NFT (optional - don't fail if this doesn't work)
       try {
-        console.log('Minting achievement NFT...');
+        console.log('🎨 Starting NFT minting...');
+        console.log('Wallet adapter:', wallet.adapter);
+        console.log('Wallet publicKey:', wallet.adapter?.publicKey?.toString());
+        
         nftResult = await mintAchievementNFT(
           connection,
           wallet.adapter,
@@ -178,7 +195,8 @@ export default function TutorPage() {
           currentLesson.id
         );
         
-        console.log('NFT Minted:', nftResult.mintAddress);
+        console.log('✅ NFT Minted successfully!');
+        console.log('Mint address:', nftResult.mintAddress);
         
         // Update NFT status
         setCourses((prevCourses) =>
@@ -208,10 +226,13 @@ export default function TutorPage() {
           duration: 3000,
         });
       } catch (nftError: any) {
-        console.error('NFT minting failed (non-critical):', nftError);
-        toast.info('Lesson completed, but NFT minting skipped', {
-          description: 'You can still continue learning!',
-          duration: 3000,
+        console.error('❌ NFT minting failed (non-critical):', nftError);
+        console.error('Error details:', nftError.message);
+        
+        // Show more helpful error message
+        toast.warning('Lesson completed, but NFT minting failed', {
+          description: nftError.message || 'Try again or get devnet SOL from faucet',
+          duration: 5000,
         });
       }
       
@@ -221,6 +242,9 @@ export default function TutorPage() {
       if (nextLesson) {
         setCurrentLesson(nextLesson);
       }
+      
+      // Refresh wallet balance
+      checkWalletBalance();
     } catch (error: any) {
       console.error('Error completing lesson:', error);
       toast.error('Failed to complete lesson', {
@@ -635,6 +659,27 @@ export default function TutorPage() {
           
           <div className="flex items-center gap-4">
             <ThemeToggle />
+            
+            {/* Wallet Balance Display */}
+            {connected && publicKey && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  💰 {walletBalance.toFixed(4)} SOL
+                </span>
+                {walletBalance < 0.01 && (
+                  <a
+                    href="https://faucet.solana.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
+                    title="Get devnet SOL"
+                  >
+                    Get SOL
+                  </a>
+                )}
+              </div>
+            )}
+            
             <WalletMultiButton />
           </div>
         </div>
