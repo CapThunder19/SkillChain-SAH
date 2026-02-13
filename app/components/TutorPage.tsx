@@ -450,7 +450,7 @@ export default function TutorPage() {
 
   if (!tutorExists) {
     return (
-      <div className="min-h-screen bg-black dark:bg-black relative overflow-hidden">
+      <div className="min-h-screen bg-black dark:bg-black relative overflow-hidden pt-16">
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
@@ -616,7 +616,7 @@ export default function TutorPage() {
 
   if (selectedCourse && currentLesson) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-black">
+      <div className="min-h-screen bg-gray-50 dark:bg-black pt-20">
         <div className="max-w-7xl mx-auto p-6">
           <motion.button
             initial={{ opacity: 0, x: -20 }}
@@ -645,44 +645,28 @@ export default function TutorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black p-6">
-      {/* Header */}
+    <div className="min-h-screen bg-gray-50 dark:bg-black pt-20 p-6">
+      {/* Header - Simplified since navigation is global now */}
       <div className="max-w-7xl mx-auto mb-12 relative z-10">
-        <div className="flex justify-between items-center mb-6">
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-3xl font-bold text-gray-900 dark:text-white"
-          >
-            🎓 <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">AI Tutor</span>
-          </motion.h1>
-          
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            
-            {/* Wallet Balance Display */}
-            {connected && publicKey && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  💰 {walletBalance.toFixed(4)} SOL
-                </span>
-                {walletBalance < 0.01 && (
-                  <a
-                    href="https://faucet.solana.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
-                    title="Get devnet SOL"
-                  >
-                    Get SOL
-                  </a>
-                )}
-              </div>
+        {/* Wallet Balance Display */}
+        {connected && publicKey && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mb-6 w-fit">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              💰 {walletBalance.toFixed(4)} SOL
+            </span>
+            {walletBalance < 0.01 && (
+              <a
+                href="https://faucet.solana.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
+                title="Get devnet SOL"
+              >
+                Get SOL
+              </a>
             )}
-            
-            <WalletMultiButton />
           </div>
-        </div>
+        )}
 
         {/* Course Filters */}
         <div className="flex gap-3 flex-wrap relative z-10">

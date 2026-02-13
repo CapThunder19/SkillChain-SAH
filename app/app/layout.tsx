@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/Toaster";
+import { WalletContextProvider } from "@/components/WalletProvider";
+import Navigation from "@/components/Navigation";
 
 export const metadata: Metadata = {
   title: "AI Tutor - Learn & Earn NFTs",
@@ -29,8 +31,11 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <Toaster />
-        {children}
+        <WalletContextProvider>
+          <Navigation />
+          <Toaster />
+          {children}
+        </WalletContextProvider>
       </body>
     </html>
   );
