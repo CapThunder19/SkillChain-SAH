@@ -46,6 +46,7 @@ export async function mintAchievementNFT(
     };
 
     console.log('Creating NFT with metadata:', metadata);
+    console.log('⚠️  Note: Using placeholder URI. For production, upload metadata to IPFS/Arweave.');
 
     console.log('📝 Sending NFT creation transaction...');
     
@@ -79,6 +80,8 @@ export async function mintAchievementNFT(
     // Check for common errors
     if (error.message?.includes('insufficient') || error.message?.includes('0x1')) {
       throw new Error(`Insufficient SOL for minting. Please get devnet SOL from https://faucet.solana.com`);
+    } else if (error.message?.includes('URI too long') || error.message?.includes('0xd')) {
+      throw new Error('Metadata URI too long. Metadata must be uploaded to IPFS/Arweave.');
     } else if (error.message?.includes('blockhash') || error.message?.includes('timeout')) {
       throw new Error('Transaction timeout. Network is slow, please try again.');
     } else if (error.message?.includes('User rejected') || error.message?.includes('rejected')) {
@@ -93,33 +96,10 @@ export async function mintAchievementNFT(
 
 // Create a simple metadata URI (in production, this should upload to IPFS/Arweave)
 function createMetadataUri(lessonTitle: string, lessonId: number): string {
-  // Create a data URI with JSON metadata (inline metadata)
-  // This works for testing but should be replaced with IPFS/Arweave in production
-  const metadata = {
-    name: `Lesson ${lessonId}`,
-    symbol: 'TUTOR',
-    description: `Achievement NFT for completing: ${lessonTitle}`,
-    image: `https://api.dicebear.com/7.x/shapes/svg?seed=lesson${lessonId}`,
-    attributes: [
-      {
-        trait_type: 'Lesson ID',
-        value: lessonId.toString(),
-      },
-      {
-        trait_type: 'Category',
-        value: 'Education',
-      },
-      {
-        trait_type: 'Completed',
-        value: new Date().toISOString(),
-      },
-    ],
-  };
-  
-  // Use a simple base64 encoded data URI for testing
-  const jsonString = JSON.stringify(metadata);
-  const base64 = Buffer.from(jsonString).toString('base64');
-  return `data:application/json;base64,${base64}`;
+  // Use a SHORT placeholder URL - Metaplex has strict URI length limits (200 chars max)
+  // In production, you should upload metadata JSON to IPFS/Arweave and use that URL
+  // For now, using a short URL that fits within limits
+  return `https://arweave.net/${lessonId}`;
 }
 
 export function generateMilestoneHash(lessonId: number): number[] {
