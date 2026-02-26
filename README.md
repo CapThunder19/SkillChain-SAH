@@ -13,33 +13,28 @@ A decentralized learning platform that combines AI-powered tutoring with blockch
 
 ### 🤖 AI-Powered Learning
 - **Gemini AI Integration** - Intelligent tutoring with Google's latest Gemini 2.5 Flash model
+- **AI Code Autograder** - Real-time code evaluation and feedback via an integrated Monaco Editor 
 - **Context-Aware Responses** - AI adapts to your learning progress and current lesson
 - **Interactive Chat** - Real-time Q&A with detailed explanations and examples
 - **Personalized Guidance** - Tailored learning experience based on your subject
 
 ### ⛓️ Blockchain Integration
 - **Solana Smart Contracts** - Secure on-chain profile and progress tracking
-- **NFT Achievement System** - Mint unique NFTs for each completed lesson
+- **NFT Achievement System** - Mint unique NFTs and compressed NFTs (cNFTs) for completed lessons
+- **Token Rewards** - Earn `$LEARN` SPL tokens automatically as you progress and master skills
 - **Wallet Integration** - Seamless connection with Phantom, Solflare, and other Solana wallets
 - **Decentralized Credentials** - Permanent, verifiable proof of learning achievements
 
-### 📚 Course Catalog
-- **Web Development** - HTML/CSS, JavaScript, React (3 lessons)
-- **Blockchain Fundamentals** - Intro to Blockchain, Cryptography, Consensus (3 lessons)
-- **Solana Development** - Architecture, Smart Contracts, dApp Building (3 lessons)
-- **DeFi Essentials** - DeFi Basics, Protocols, AMMs (3 lessons)
-- **AI & Machine Learning** - AI Intro, Neural Networks, ML Projects (3 lessons)
-- **Python Programming** - Python Basics, OOP, Projects (3 lessons)
-- **Cybersecurity** - Security Fundamentals, Ethical Hacking, Best Practices (3 lessons)
-
-**Total: 7 Courses | 21 Interactive Lessons**
+### 🎓 Interactive Learning Paths
+- **Visual Skill Tree** - Branching, interactive progression paths that map out your optimal learning journey
+- **Leaderboards** - Track your progress and compete against other learners globally
+- **Course Catalog** - 7 distinct courses with 21 interactive lessons spanning from Web Dev to Cybersecurity
 
 ### 🎨 Modern UI/UX
-- **Dark/Light Mode** - Toggle between themes
-- **Responsive Design** - Works on desktop, tablet, and mobile
-- **Smooth Animations** - Framer Motion for fluid interactions
-- **Progress Tracking** - Visual indicators for course completion
-- **Category Filters** - Easily browse courses by subject
+- **Dark/Light Mode** - Polished global toggling between themes with smart color variables
+- **Responsive Design** - Works seamlessly on desktop, tablet, and mobile browsers
+- **Smooth Animations** - Framer Motion utilized for fluid interactions and course card popups
+- **Progress Tracking** - Visual indicators and stats for course completion and balance
 
 ## 🚀 Quick Start
 

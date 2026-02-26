@@ -1,8 +1,9 @@
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { createNft, mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
-import { generateSigner, percentAmount } from '@metaplex-foundation/umi';
+import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
+import { generateSigner, publicKey, PublicKey } from '@metaplex-foundation/umi';
 import { Connection } from '@solana/web3.js';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
+import { createTree, mintV1, mplBubblegum } from '@metaplex-foundation/mpl-bubblegum';
 
 export interface NFTMintOptions {
   lessonId: number;
@@ -24,7 +25,7 @@ export async function mintAchievementNFT(
   const quizScore = options?.quizScore ?? 0;
 
   try {
-    console.log('🎨 Starting NFT minting process...');
+    console.log('🎨 Starting cNFT minting process...');
     console.log('Wallet:', wallet?.publicKey?.toString());
     console.log('Rarity:', rarity, '| Score:', quizScore);
 
@@ -42,13 +43,33 @@ export async function mintAchievementNFT(
     // Create UMI instance
     const umi = createUmi(connection.rpcEndpoint)
       .use(mplTokenMetadata())
+      .use(mplBubblegum())
       .use(walletAdapterIdentity(wallet));
 
     console.log('✓ UMI instance created');
 
-    // Generate a new mint address
-    const mint = generateSigner(umi);
-    console.log('✓ Mint address generated:', mint.publicKey);
+    // 1. Get or Create Merkle Tree (usually done once by the admin, but for this demo the user creates it if missing)
+    let treeAddressStr = localStorage.getItem('merkleTreeAddress');
+    let treePk: PublicKey;
+
+    if (!treeAddressStr) {
+      console.log('🌲 No Merkle Tree found in local storage. Creating a new one (This costs ~0.01 SOL just once)...');
+      const merkleTree = generateSigner(umi);
+
+      const builder = await createTree(umi, {
+        merkleTree,
+        maxDepth: 14,
+        maxBufferSize: 64,
+      });
+      await builder.sendAndConfirm(umi);
+
+      treePk = merkleTree.publicKey;
+      localStorage.setItem('merkleTreeAddress', treePk.toString());
+      console.log('✅ Merkle Tree created:', treePk);
+    } else {
+      treePk = publicKey(treeAddressStr);
+      console.log('🌲 Using existing Merkle Tree:', treePk);
+    }
 
     // Build metadata URI pointing to our on-chain API
     const metadataUri = buildMetadataUri(lessonId, rarity, quizScore);
@@ -57,34 +78,32 @@ export async function mintAchievementNFT(
     // NFT name: keep under 32 bytes
     const nftName = buildNFTName(lessonId, rarity);
 
-    const metadata = {
-      name: nftName,
-      symbol: 'TUTOR',
-      uri: metadataUri,
-    };
+    console.log('📝 Sending cNFT creation transaction...');
 
-    console.log('📝 Sending NFT creation transaction with metadata:', metadata);
-
-    // Create the NFT with rarity-based royalties (legendary = 0 fee, just symbolic)
-    const tx = await createNft(umi, {
-      mint,
-      name: metadata.name,
-      symbol: metadata.symbol,
-      uri: metadata.uri,
-      sellerFeeBasisPoints: percentAmount(0),
-      isCollection: false,
+    // 2. Mint Compressed NFT
+    const tx = await mintV1(umi, {
+      leafOwner: umi.identity.publicKey,
+      merkleTree: treePk,
+      metadata: {
+        name: nftName,
+        uri: metadataUri,
+        sellerFeeBasisPoints: 0,
+        collection: { key: umi.identity.publicKey, verified: false },
+        creators: [
+          { address: umi.identity.publicKey, verified: false, share: 100 },
+        ],
+      },
     }).sendAndConfirm(umi, {
       confirm: { commitment: 'confirmed' },
       send: { skipPreflight: false },
     });
 
-    console.log('✅ NFT created successfully!');
+    console.log('✅ Compressed NFT created successfully!');
     console.log('Signature:', tx.signature);
-    console.log('Mint address:', mint.publicKey);
 
     return {
       signature: tx.signature,
-      mintAddress: mint.publicKey,
+      mintAddress: tx.signature, // For cNFTs, the exact mint address needs off-chain parsing or indexer. We return signature as a placeholder.
       rarity,
       metadataUri,
     };
