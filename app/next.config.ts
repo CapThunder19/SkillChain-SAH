@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactCompiler: true,
+  reactCompiler: false,
   turbopack: {},
   images: {
     // Allow unoptimized images (needed for SVG img tags and our API route)
