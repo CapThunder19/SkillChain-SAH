@@ -3,6 +3,21 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactCompiler: false,
   turbopack: {},
+  // Force Next.js to transpile Solana wallet ESM-only packages
+  transpilePackages: [
+    '@solana/wallet-adapter-base',
+    '@solana/wallet-adapter-react',
+    '@solana/wallet-adapter-react-ui',
+    '@solana/wallet-adapter-phantom',
+    '@solana/wallet-adapter-solflare',
+    '@solana/wallet-standard-wallet-adapter-base',
+    '@solana/wallet-standard-wallet-adapter-react',
+    '@solana/wallet-standard',
+    '@wallet-standard/app',
+    '@wallet-standard/base',
+    '@wallet-standard/features',
+    '@wallet-standard/wallet',
+  ],
   images: {
     // Allow unoptimized images (needed for SVG img tags and our API route)
     unoptimized: true,
