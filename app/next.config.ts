@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
-  turbopack: {},
   // Force Next.js to transpile Solana wallet ESM-only packages
   transpilePackages: [
     '@solana/wallet-adapter-base',
@@ -18,14 +17,22 @@ const nextConfig: NextConfig = {
     '@wallet-standard/features',
     '@wallet-standard/wallet',
   ],
+  // Next.js 16 defaults to Turbopack — must also provide turbopack config when using webpack
+  turbopack: {
+    resolveAlias: {
+      // Provide browser-safe no-op aliases for Node.js built-ins used by Solana packages
+      fs: { browser: './node_modules/browserify-fs' },
+      os: { browser: 'os-browserify/browser' },
+      path: { browser: 'path-browserify' },
+      crypto: { browser: 'crypto-browserify' },
+    },
+  },
   images: {
-    // Allow unoptimized images (needed for SVG img tags and our API route)
     unoptimized: true,
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
-  // Allow SVG in img tags
   async headers() {
     return [
       {
