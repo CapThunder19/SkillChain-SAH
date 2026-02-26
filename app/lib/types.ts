@@ -38,4 +38,35 @@ export interface Achievement {
   lesson: string;
   mintAddress: string;
   timestamp: number;
+  rarity?: 'common' | 'rare' | 'legendary';
+  quizScore?: number;
+}
+
+export interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+export interface QuizResult {
+  score: number;
+  total: number;
+  percentage: number;
+  rarity: 'common' | 'rare' | 'legendary';
+}
+
+export interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  lastActivityDate: string;
+  totalDaysLearned: number;
+}
+
+export interface LeaderboardEntry {
+  wallet: string;
+  level: number;
+  subject: string;
+  streak: number;
+  completedLessons: number;
 }

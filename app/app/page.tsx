@@ -1,228 +1,280 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { Users, TrendingUp } from 'lucide-react';
 
-export default function Home() {
-  const { connected } = useWallet();
-  
-  const features = [
-    {
-      icon: '🎓',
-      title: 'Learn Blockchain',
-      description: 'Master Web3, Solana, DeFi, and more with interactive lessons',
-      color: 'from-blue-500 to-cyan-500',
-    },
-    {
-      icon: '🤖',
-      title: 'AI-Powered Tutor',
-      description: 'Get instant answers to your questions with our AI assistant',
-      color: 'from-cyan-500 to-blue-400',
-    },
-    {
-      icon: '🎨',
-      title: 'Earn NFT Badges',
-      description: 'Complete lessons and mint achievement NFTs on Solana',
-      color: 'from-blue-600 to-indigo-600',
-    },
-    {
-      icon: '⛓️',
-      title: 'On-Chain Progress',
-      description: 'Your learning progress is permanently stored on blockchain',
-      color: 'from-indigo-500 to-blue-500',
-    },
+export default function HomePage() {
+  const [activeCategory, setActiveCategory] = useState('All');
+
+  const categories = [
+    { name: 'All', icon: '📚' },
+    { name: 'IT & Software', icon: '💻' },
+    { name: 'Media Training', icon: '🎬' },
+    { name: 'Business', icon: '💼' },
+    { name: 'Interior', icon: '🏠' },
   ];
 
   const courses = [
-    { title: 'Blockchain Fundamentals', lessons: 5, icon: '⛓️' },
-    { title: 'Web Development', lessons: 4, icon: '🌐' },
-    { title: 'Solana Development', lessons: 6, icon: '🔷' },
-    { title: 'DeFi Essentials', lessons: 5, icon: '💰' },
-    { title: 'AI & Machine Learning', lessons: 5, icon: '🤖' },
-    { title: 'Cybersecurity', lessons: 5, icon: '🔒' },
+    {
+      id: 1,
+      title: 'CCNA 2020 200-125 Video Boot Camp',
+      category: 'IT & Software',
+      icon: '💻',
+      rating: 4.8,
+      students: '9,550',
+      color: 'from-pink-200 to-pink-300',
+      featured: false,
+    },
+    {
+      id: 2,
+      title: 'Powerful Business Writing: How to Write Concisely',
+      category: 'Business',
+      icon: '💼',
+      rating: 4.9,
+      students: '1,683',
+      color: 'from-orange-200 to-amber-300',
+      featured: false,
+    },
+    {
+      id: 3,
+      title: 'Certified Six Sigma Yellow Belt Training',
+      category: 'Media Training',
+      icon: '🎬',
+      rating: 4.9,
+      students: '6,726',
+      color: 'from-purple-200 to-purple-300',
+      featured: false,
+    },
+    {
+      id: 4,
+      title: 'How to Design a Room in 10 Easy Steps',
+      category: 'Interior',
+      icon: '🏠',
+      rating: 5.0,
+      students: '8,235',
+      color: 'from-emerald-200 to-teal-300',
+      featured: false,
+      trending: true,
+    },
+    {
+      id: 5,
+      title: 'Blockchain Fundamentals',
+      category: 'IT & Software',
+      icon: '⛓️',
+      rating: 4.9,
+      students: '12,430',
+      color: 'from-blue-200 to-cyan-300',
+      featured: true,
+    },
+    {
+      id: 6,
+      title: 'Solana Smart Contract Development',
+      category: 'IT & Software',
+      icon: '🔷',
+      rating: 5.0,
+      students: '8,921',
+      color: 'from-indigo-200 to-purple-300',
+      featured: true,
+    },
   ];
 
+  const filteredCourses = activeCategory === 'All'
+    ? courses
+    : courses.filter(c => c.category === activeCategory);
+
+  const popularCourses = filteredCourses.filter(c => !c.featured);
+  const featuredCourses = filteredCourses.filter(c => c.featured);
+
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
-      {/* Animated Blue Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 90, 0],
-            opacity: [0.1, 0.2, 0.1],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          className="absolute -top-40 -left-40 w-96 h-96 bg-blue-600 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.3, 1],
-            rotate: [0, -90, 0],
-            opacity: [0.1, 0.15, 0.1],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-500 rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.05, 0.1, 0.05],
-          }}
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-          className="absolute top-1/2 left-1/2 w-96 h-96 bg-cyan-500 rounded-full blur-3xl"
-        />
-      </div>
-
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative z-10">
-        <div className="max-w-6xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <div className="text-6xl mb-6 animate-bounce">🎓</div>
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-              Learn Web3 &<br />
-              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                Earn NFT Badges
-              </span>
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
-              Master blockchain technology with AI-powered lessons and mint achievement NFTs on Solana
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                href="/learn"
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white rounded-xl font-semibold text-lg hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg shadow-blue-500/50 hover:shadow-xl hover:shadow-blue-500/70 hover:scale-105"
-              >
-                {connected ? 'Continue Learning →' : 'Start Learning →'}
-              </Link>
-              <Link
-                href="/achievements"
-                className="px-8 py-4 bg-gray-900 text-white rounded-xl font-semibold text-lg border-2 border-blue-500/50 hover:border-blue-500 transition-all hover:scale-105 hover:bg-gray-800"
-              >
-                View Achievements
-              </Link>
+    <div className="min-h-screen bg-[var(--bg)]">
+      {/* Top Navigation Bar */}
+      <nav className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 px-8 py-4">
+        <div className="w-full mx-auto flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
+            Invest in your education
+          </h1>
+          <div className="flex items-center gap-4">
+            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors text-[var(--text-primary)]">
+              🔔
+            </button>
+            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors text-[var(--text-primary)]">
+              ⚙️
+            </button>
+            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+              SC
             </div>
-          </motion.div>
+          </div>
         </div>
-      </section>
+      </nav>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 bg-gray-900/50 backdrop-blur-sm relative z-10">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Why Choose AI Tutor?
-            </h2>
-            <p className="text-xl text-gray-400">
-              The future of learning is here
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-gray-800/50 backdrop-blur-sm rounded-2xl p-8 shadow-lg border border-gray-700/50 hover:border-blue-500/50 hover:shadow-blue-500/20 transition-all hover:scale-105"
+      <div className="w-full mx-auto px-8 py-8">
+        {/* Category Filter */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 overflow-x-auto pb-4 scrollbar-hide">
+            {categories.map((category, index) => (
+              <motion.button
+                key={category.name}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                onClick={() => setActiveCategory(category.name)}
+                className={`
+                  flex items-center gap-2 px-5 py-3 rounded-2xl font-medium text-sm whitespace-nowrap transition-all
+                  ${activeCategory === category.name
+                    ? 'bg-black text-white shadow-lg scale-105'
+                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700'
+                  }
+                `}
               >
-                <div className={`w-16 h-16 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-3xl mb-4`}>
-                  {feature.icon}
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-400">
-                  {feature.description}
-                </p>
-              </motion.div>
+                <span className="text-lg">{category.icon}</span>
+                <span>{category.name}</span>
+              </motion.button>
             ))}
           </div>
         </div>
-      </section>
 
-      {/* Courses Section */}
-      <section className="py-20 px-4 relative z-10">
-        <div className="max-w-6xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Available Courses
-            </h2>
-            <p className="text-xl text-gray-400">
-              30+ lessons across 7 comprehensive courses
-            </p>
-          </motion.div>
+        {/* Most Popular Courses */}
+        {popularCourses.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">Most popular</h2>
+              <button className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">View all →</button>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {courses.map((course, index) => (
-              <motion.div
-                key={course.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                viewport={{ once: true }}
-                className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-700/50 hover:border-blue-500/50 hover:shadow-blue-500/20 transition-all hover:scale-105"
-              >
-                <div className="text-4xl mb-3">{course.icon}</div>
-                <h3 className="text-xl font-bold text-white mb-2">
-                  {course.title}
-                </h3>
-                <p className="text-sm text-gray-400">
-                  {course.lessons} interactive lessons
-                </p>
-              </motion.div>
-            ))}
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-5">
+              {popularCourses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                >
+                  <Link
+                    href="/learn"
+                    className={`flex flex-col justify-between bg-gradient-to-br ${course.color} rounded-3xl p-6 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 group relative overflow-hidden min-h-[260px] h-full`}
+                  >
+                    <div>
+                      {/* Category Badge */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-xl px-3 py-2">
+                          <span className="text-lg">{course.icon}</span>
+                          <span className="text-xs font-bold text-gray-700">{course.category}</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-xl px-3 py-2">
+                          <span className="text-sm font-bold text-gray-900">⭐ {course.rating}</span>
+                        </div>
+                      </div>
+
+                      {/* Course Title */}
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug">
+                        {course.title}
+                      </h3>
+                    </div>
+
+                    <div className="mt-4">
+                      {/* Students Count & Avatars */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-gray-700 font-semibold">
+                          <Users className="w-4 h-4" />
+                          <span>{course.students}</span>
+                        </div>
+
+                        {/* Avatar Group */}
+                        <div className="flex -space-x-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 border-white shadow-md flex-shrink-0" />
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 border-2 border-white shadow-md flex-shrink-0" />
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 border-2 border-white shadow-md flex-shrink-0" />
+                        </div>
+                      </div>
+
+                      {(course as any).trending && (
+                        <div className="inline-flex items-center gap-1 bg-emerald-500 text-white rounded-lg px-3 py-1.5 text-xs font-bold mt-3">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          <span>Top 10</span>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        )}
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 relative z-10">
-        <div className="max-w-4xl mx-auto text-center">
+        {/* Featured Courses */}
+        {featuredCourses.length > 0 && (
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">Featured courses</h2>
+              <button className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">View all →</button>
+            </div>
+
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-5">
+              {featuredCourses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
+                >
+                  <Link
+                    href="/learn"
+                    className={`flex flex-col justify-between bg-gradient-to-br ${course.color} rounded-3xl p-6 hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 group relative overflow-hidden min-h-[260px] h-full`}
+                  >
+                    <div>
+                      {/* Category Badge */}
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-xl px-3 py-2">
+                          <span className="text-lg">{course.icon}</span>
+                          <span className="text-xs font-bold text-gray-700">{course.category}</span>
+                        </div>
+                        <div className="flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-xl px-3 py-2">
+                          <span className="text-sm font-bold text-gray-900">⭐ {course.rating}</span>
+                        </div>
+                      </div>
+
+                      {/* Course Title */}
+                      <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug">
+                        {course.title}
+                      </h3>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between">
+                      {/* Students Count */}
+                      <div className="flex items-center gap-2 text-sm text-gray-700 font-semibold">
+                        <Users className="w-4 h-4" />
+                        <span>{course.students}</span>
+                      </div>
+
+                      {/* Avatar Group */}
+                      <div className="flex -space-x-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border-2 border-white shadow-md flex-shrink-0" />
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 border-2 border-white shadow-md flex-shrink-0" />
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 border-2 border-white shadow-md flex-shrink-0" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty state when filtering */}
+        {filteredCourses.length === 0 && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-20"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Ready to Start Learning?
-            </h2>
-            <p className="text-xl text-blue-100 mb-8">
-              Connect your Solana wallet and begin your Web3 education journey today
-            </p>
-            <Link
-              href="/learn"
-              className="inline-block px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl hover:scale-105"
-            >
-              Get Started Free →
-            </Link>
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2">No courses found</h3>
+            <p className="text-[var(--text-secondary)]">Try selecting a different category</p>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Bottom gradient fade */}
-      <div className="h-32 bg-gradient-to-b from-cyan-600 to-black relative z-10"></div>
+        )}
+      </div>
     </div>
   );
 }

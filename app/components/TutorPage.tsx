@@ -5,6 +5,7 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import LessonViewer from '@/components/LessonViewer';
 import FloatingChatBot from '@/components/FloatingChatBot';
 import ThemeToggle from '@/components/ThemeToggle';
@@ -12,12 +13,13 @@ import TypingAnimation from '@/components/TypingAnimation';
 import { getProgram, createTutorProfile, fetchTutorProfile, updateProgress } from '@/lib/anchor-client';
 import { mintAchievementNFT, generateMilestoneHash } from '@/lib/nft-minter';
 import { COURSES } from '@/lib/constants';
-import { Course, Lesson, Achievement } from '@/lib/types';
+import { Course, Lesson, Achievement, QuizResult } from '@/lib/types';
+import { recordActivity, getStreakEmoji } from '@/lib/streak';
 
 export default function TutorPage() {
   const { publicKey, connected, wallet } = useWallet();
   const { connection } = useConnection();
-  
+
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [tutorExists, setTutorExists] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,10 +36,10 @@ export default function TutorPage() {
       checkWalletBalance();
     }
   }, [publicKey, connected]);
-  
+
   const checkWalletBalance = async () => {
     if (!publicKey) return;
-    
+
     try {
       const balance = await connection.getBalance(publicKey);
       setWalletBalance(balance / 1e9);
@@ -49,15 +51,15 @@ export default function TutorPage() {
 
   const checkTutorProfile = async () => {
     if (!publicKey || !wallet) return;
-    
+
     try {
       const program = getProgram(connection, wallet.adapter);
       const profile = await fetchTutorProfile(program, publicKey);
-      
+
       if (profile) {
         setTutorExists(true);
         setLevel(profile.level);
-        
+
         // Mark lessons as completed based on level
         const completedLessonCount = profile.level - 1;
         setCourses((prevCourses) =>
@@ -78,12 +80,12 @@ export default function TutorPage() {
 
   const handleCreateProfile = async () => {
     if (!publicKey || !wallet) return;
-    
+
     setLoading(true);
     try {
       const program = getProgram(connection, wallet.adapter);
       const result = await createTutorProfile(program, publicKey, 'Web3 Development');
-      
+
       console.log('Profile created:', result.signature);
       setTutorExists(true);
       toast.success('Profile Created!', {
@@ -130,7 +132,7 @@ export default function TutorPage() {
 
   const getFilteredCourses = () => {
     if (selectedCategory === 'All courses') return courses;
-    
+
     return courses.filter(course => {
       if (selectedCategory === 'Web Development') {
         return course.title.includes('Web Development') || course.title.includes('Python');
@@ -148,23 +150,39 @@ export default function TutorPage() {
     });
   };
 
-  const handleLessonComplete = async () => {
+  const handleLessonComplete = async (quizResult?: QuizResult) => {
     if (!publicKey || !wallet || !currentLesson) return;
-    
+
     setLoading(true);
     let nftResult: { signature: Uint8Array; mintAddress: any } | null = null;
-    
+
     try {
-      // 1. Update progress on-chain FIRST (most important)
+      // 1. Record streak activity
+      const streakData = recordActivity();
+      const streakEmoji = getStreakEmoji(streakData.currentStreak);
+      if (streakData.currentStreak > 0) {
+        const milestone = streakData.currentStreak === 3 || streakData.currentStreak === 7 || streakData.currentStreak === 14 || streakData.currentStreak === 30;
+        if (milestone) {
+          toast.success(`${streakEmoji} ${streakData.currentStreak}-Day Streak!`, {
+            description: 'Keep the fire burning! You\'re on a roll!',
+            duration: 5000,
+          });
+        }
+      }
+
+      // 2. Update progress on-chain FIRST (most important)
       const newLevel = level + 1;
       const milestoneHash = generateMilestoneHash(currentLesson.id);
-      
+
       const program = getProgram(connection, wallet.adapter);
       const signature = await updateProgress(program, publicKey, newLevel, milestoneHash);
-      
+
       console.log('Progress updated:', signature);
-      
-      // 2. Update local state immediately
+
+      // Persist level for leaderboard
+      localStorage.setItem('userLevel', String(newLevel));
+
+      // 3. Update local state immediately
       setLevel(newLevel);
       setCourses((prevCourses) =>
         prevCourses.map((course) => ({
@@ -176,28 +194,36 @@ export default function TutorPage() {
           ),
         }))
       );
-      
+
+      const rarityLabel = quizResult
+        ? quizResult.rarity === 'legendary' ? '🥇 Legendary' : quizResult.rarity === 'rare' ? '🥈 Rare' : '🥉 Common'
+        : '';
+
       toast.success('🎉 Lesson Completed!', {
-        description: `Level ${newLevel} achieved!`,
+        description: `Level ${newLevel} achieved! ${rarityLabel ? `NFT Rarity: ${rarityLabel}` : ''}`,
         duration: 4000,
       });
-      
-      // 3. Try to mint NFT (optional - don't fail if this doesn't work)
+
+      // 4. Try to mint NFT (optional - don't fail if this doesn't work)
       try {
         console.log('🎨 Starting NFT minting...');
         console.log('Wallet adapter:', wallet.adapter);
         console.log('Wallet publicKey:', wallet.adapter?.publicKey?.toString());
-        
+
         nftResult = await mintAchievementNFT(
           connection,
           wallet.adapter,
           currentLesson.title,
-          currentLesson.id
+          currentLesson.id,
+          {
+            rarity: quizResult?.rarity ?? 'common',
+            quizScore: quizResult?.percentage ?? 0,
+          }
         );
-        
+
         console.log('✅ NFT Minted successfully!');
         console.log('Mint address:', nftResult.mintAddress);
-        
+
         // Update NFT status
         setCourses((prevCourses) =>
           prevCourses.map((course) => ({
@@ -209,7 +235,7 @@ export default function TutorPage() {
             ),
           }))
         );
-        
+
         if (nftResult) {
           setAchievements((prev) => [
             ...prev,
@@ -217,10 +243,12 @@ export default function TutorPage() {
               lesson: currentLesson.title,
               mintAddress: nftResult!.mintAddress.toString(),
               timestamp: Date.now(),
+              rarity: quizResult?.rarity ?? 'common',
+              quizScore: quizResult?.percentage ?? 0,
             },
           ]);
         }
-        
+
         toast.success('🎨 NFT Minted!', {
           description: 'Achievement NFT added to your wallet',
           duration: 3000,
@@ -228,21 +256,21 @@ export default function TutorPage() {
       } catch (nftError: any) {
         console.error('❌ NFT minting failed (non-critical):', nftError);
         console.error('Error details:', nftError.message);
-        
+
         // Show more helpful error message
         toast.warning('Lesson completed, but NFT minting failed', {
           description: nftError.message || 'Try again or get devnet SOL from faucet',
           duration: 5000,
         });
       }
-      
+
       // 4. Move to next lesson
       const allLessons = courses.flatMap(c => c.lessons);
       const nextLesson = allLessons.find((l) => !l.completed && l.id > currentLesson.id);
       if (nextLesson) {
         setCurrentLesson(nextLesson);
       }
-      
+
       // Refresh wallet balance
       checkWalletBalance();
     } catch (error: any) {
@@ -311,20 +339,20 @@ export default function TutorPage() {
 
               <div className="space-y-4">
                 <h1 className="text-5xl lg:text-7xl font-bold text-white leading-tight">
-                  <TypingAnimation 
+                  <TypingAnimation
                     text="Connect Wallet"
                     speed={120}
                     className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent"
                   />
                 </h1>
-                
+
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 1.8 }}
                   className="text-xl text-gray-300 leading-relaxed"
                 >
-                  Start your journey in Web3 development, blockchain technology, and AI. 
+                  Start your journey in Web3 development, blockchain technology, and AI.
                   Earn NFT achievements as you progress through interactive lessons.
                 </motion.p>
               </div>
@@ -395,7 +423,7 @@ export default function TutorPage() {
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2">Welcome Back!</h2>
                     <p className="text-gray-300 mb-6">Connect your Solana wallet to continue learning</p>
-                    
+
                     <div className="flex justify-center">
                       <WalletMultiButton className="!bg-gradient-to-r !from-purple-600 !to-blue-600 hover:!from-purple-700 hover:!to-blue-700 !rounded-xl !h-14 !px-8 !text-base !font-semibold !transition-all !shadow-lg hover:!shadow-xl hover:!scale-105" />
                     </div>
@@ -491,13 +519,13 @@ export default function TutorPage() {
           >
             <div className="flex justify-between items-start mb-8">
               <div>
-                <motion.h2 
+                <motion.h2
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 }}
                   className="text-3xl lg:text-4xl font-bold text-white mb-2"
                 >
-                  <TypingAnimation 
+                  <TypingAnimation
                     text="One Last Step..."
                     speed={100}
                   />
@@ -513,8 +541,8 @@ export default function TutorPage() {
               </div>
               <WalletMultiButton className="!bg-gray-800/50 hover:!bg-gray-700/50 !border !border-gray-700/50" />
             </div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1.8 }}
@@ -617,7 +645,7 @@ export default function TutorPage() {
   if (selectedCourse && currentLesson) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-black pt-20">
-        <div className="max-w-7xl mx-auto p-6">
+        <div className="w-full mx-auto p-6">
           <motion.button
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -632,7 +660,7 @@ export default function TutorPage() {
             </svg>
             Back to Dashboard
           </motion.button>
-          
+
           <LessonViewer
             lesson={currentLesson}
             subject={selectedCourse.title}
@@ -645,28 +673,55 @@ export default function TutorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-black pt-20 p-6">
+    <div className="min-h-screen bg-[var(--bg)] py-6 px-6 md:px-8 lg:px-10">
       {/* Header - Simplified since navigation is global now */}
-      <div className="max-w-7xl mx-auto mb-12 relative z-10">
-        {/* Wallet Balance Display */}
-        {connected && publicKey && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 mb-6 w-fit">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              💰 {walletBalance.toFixed(4)} SOL
-            </span>
-            {walletBalance < 0.01 && (
-              <a
-                href="https://faucet.solana.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
-                title="Get devnet SOL"
+      <div className="w-full mx-auto mb-10 relative z-10">
+        {/* Top bar: wallet balance + quick links */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          {connected && publicKey && (
+            <>
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  💰 {walletBalance.toFixed(4)} SOL
+                </span>
+                {walletBalance < 0.01 && (
+                  <a
+                    href="https://faucet.solana.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md transition-colors"
+                    title="Get devnet SOL"
+                  >
+                    Get SOL
+                  </a>
+                )}
+              </div>
+
+              {/* Portfolio share */}
+              <Link
+                href={`/profile/${publicKey.toBase58()}`}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-400 rounded-xl text-sm font-medium transition-all"
               >
-                Get SOL
-              </a>
-            )}
-          </div>
-        )}
+                🌐 My Portfolio
+              </Link>
+
+              {/* Quick links */}
+              <Link
+                href="/skill-tree"
+                className="flex items-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/30 text-green-400 rounded-xl text-sm font-medium transition-all"
+              >
+                🌳 Skill Tree
+              </Link>
+
+              <Link
+                href="/leaderboard"
+                className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 rounded-xl text-sm font-medium transition-all"
+              >
+                🏆 Leaderboard
+              </Link>
+            </>
+          )}
+        </div>
 
         {/* Course Filters */}
         <div className="flex gap-3 flex-wrap relative z-10">
@@ -674,11 +729,10 @@ export default function TutorPage() {
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap relative hover:scale-105 active:scale-95 ${
-                selectedCategory === category
-                  ? 'bg-white dark:bg-gray-100 text-gray-900 dark:text-gray-900'
-                  : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap relative hover:scale-105 active:scale-95 ${selectedCategory === category
+                ? 'bg-white dark:bg-gray-100 text-gray-900 dark:text-gray-900'
+                : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
             >
               {category}
             </button>
@@ -686,9 +740,9 @@ export default function TutorPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto relative">
+      <div className="w-full mx-auto relative">
         {/* My Courses Section */}
-        <motion.section 
+        <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -698,7 +752,7 @@ export default function TutorPage() {
             <div>
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My courses</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                {selectedCategory === 'All courses' 
+                {selectedCategory === 'All courses'
                   ? `${getFilteredCourses().length} total courses`
                   : `${getFilteredCourses().length} courses in ${selectedCategory}`
                 }
@@ -721,80 +775,80 @@ export default function TutorPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {getFilteredCourses().slice(0, 6).map((course) => {
-              const completedCount = course.lessons.filter(l => l.completed).length;
-              const totalCount = course.lessons.length;
-              const progress = (completedCount / totalCount) * 100;
-              const originalIndex = courses.findIndex(c => c.id === course.id);
-              const colors = getCourseColors(originalIndex);
-              const nextLesson = course.lessons.find(l => !l.completed);
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(320px,1fr))] gap-6">
+              {getFilteredCourses().slice(0, 6).map((course) => {
+                const completedCount = course.lessons.filter(l => l.completed).length;
+                const totalCount = course.lessons.length;
+                const progress = (completedCount / totalCount) * 100;
+                const originalIndex = courses.findIndex(c => c.id === course.id);
+                const colors = getCourseColors(originalIndex);
+                const nextLesson = course.lessons.find(l => !l.completed);
 
-              return (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 * originalIndex }}
-                  whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                  className={`${colors.bg} rounded-3xl p-6 shadow-lg relative overflow-hidden`}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="px-3 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-semibold text-gray-900 dark:text-white">
-                      {course.icon} {course.title.split(' ')[0]}
-                    </span>
-                    <button className="text-white">
-                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-white mb-6">{course.title}</h3>
-
-                  <div className="mb-4">
-                    <div className="flex justify-between text-sm text-white/90 mb-2">
-                      <span>Progress</span>
-                      <span>{completedCount}/{totalCount} lessons</span>
+                return (
+                  <motion.div
+                    key={course.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 * originalIndex }}
+                    whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                    className={`${colors.bg} rounded-3xl p-6 shadow-lg relative overflow-hidden`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <span className="px-3 py-1 bg-white/90 dark:bg-gray-900/90 rounded-full text-xs font-semibold text-gray-900 dark:text-white">
+                        {course.icon} {course.title.split(' ')[0]}
+                      </span>
+                      <button className="text-white">
+                        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                        </svg>
+                      </button>
                     </div>
-                    <div className="w-full bg-white/30 rounded-full h-2 overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 1, delay: 0.5 }}
-                        className="bg-white h-full rounded-full"
-                      />
-                    </div>
-                  </div>
 
-                  <div className="flex justify-between items-center">
-                    <div className="flex -space-x-2">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="w-8 h-8 rounded-full border-2 border-white bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-bold"
-                        >
-                          {String.fromCharCode(65 + i)}
-                        </div>
-                      ))}
-                      <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-900 flex items-center justify-center text-white text-xs font-bold">
-                        +{Math.floor(Math.random() * 100 + 20)}
+                    <h3 className="text-xl font-bold text-white mb-6">{course.title}</h3>
+
+                    <div className="mb-4">
+                      <div className="flex justify-between text-sm text-white/90 mb-2">
+                        <span>Progress</span>
+                        <span>{completedCount}/{totalCount} lessons</span>
+                      </div>
+                      <div className="w-full bg-white/30 rounded-full h-2 overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                          transition={{ duration: 1, delay: 0.5 }}
+                          className="bg-white h-full rounded-full"
+                        />
                       </div>
                     </div>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => nextLesson && handleLessonSelect(nextLesson, course)}
-                      className="px-6 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-full text-sm font-semibold hover:shadow-lg transition-shadow"
-                    >
-                      Continue
-                    </motion.button>
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
+
+                    <div className="flex justify-between items-center">
+                      <div className="flex -space-x-2">
+                        {[1, 2, 3].map((i) => (
+                          <div
+                            key={i}
+                            className="w-8 h-8 rounded-full border-2 border-white bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-xs font-bold"
+                          >
+                            {String.fromCharCode(65 + i)}
+                          </div>
+                        ))}
+                        <div className="w-8 h-8 rounded-full border-2 border-white bg-gray-900 flex items-center justify-center text-white text-xs font-bold">
+                          +{Math.floor(Math.random() * 100 + 20)}
+                        </div>
+                      </div>
+
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => nextLesson && handleLessonSelect(nextLesson, course)}
+                        className="px-6 py-2 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-full text-sm font-semibold hover:shadow-lg transition-shadow"
+                      >
+                        Continue
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
           )}
         </motion.section>
 
@@ -957,18 +1011,18 @@ export default function TutorPage() {
       </div>
 
       {loading && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50"
         >
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.9 }}
             animate={{ scale: 1 }}
             className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-800"
           >
-            <motion.div 
+            <motion.div
               animate={{ rotate: 360 }}
               transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
               className="rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"
