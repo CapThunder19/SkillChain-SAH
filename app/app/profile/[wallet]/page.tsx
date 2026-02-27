@@ -65,22 +65,45 @@ export default function ProfilePage() {
         setTimeout(() => setCopied(false), 2000);
     };
 
-    const completedLessons = profile ? profile.level - 1 : 0;
+    let initialLevel = profile ? profile.level : 1;
+    let completedLessonsCount = initialLevel > 1 ? initialLevel - 1 : 0;
+
+    // Attempt to load proper non-sequential progression from localStorage
+    let completedIds: number[] = [];
+    if (typeof window !== 'undefined') {
+        try {
+            const stored = localStorage.getItem(`completedLessons_${walletAddress}`);
+            if (stored) completedIds = JSON.parse(stored);
+        } catch (e) { }
+    }
+
+    const useLegacy = completedIds.length === 0;
     const allLessons = COURSES.flatMap(c => c.lessons);
-    const completedList = allLessons.filter(l => l.id <= completedLessons);
-    const coursePcts = COURSES.map(c => ({
-        ...c,
-        pct: Math.round((c.lessons.filter(l => l.id <= completedLessons).length / c.lessons.length) * 100),
-    }));
+
+    const completedList = allLessons.filter(l =>
+        useLegacy ? l.id <= completedLessonsCount : completedIds.includes(l.id)
+    );
+
+    const coursePcts = COURSES.map(c => {
+        const doneInCourse = c.lessons.filter(l =>
+            useLegacy ? l.id <= completedLessonsCount : completedIds.includes(l.id)
+        ).length;
+        return {
+            ...c,
+            pct: Math.round((doneInCourse / c.lessons.length) * 100),
+        };
+    });
+
+    const displayCompletedCount = useLegacy ? completedLessonsCount : completedIds.length;
 
     const shortWallet = walletAddress
         ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
         : '';
 
-    const rankTitle = completedLessons >= 18 ? '🏆 Grand Master'
-        : completedLessons >= 12 ? '💎 Diamond Learner'
-            : completedLessons >= 6 ? '🥇 Gold Scholar'
-                : completedLessons >= 3 ? '🥈 Silver Student'
+    const rankTitle = displayCompletedCount >= 18 ? '🏆 Grand Master'
+        : displayCompletedCount >= 12 ? '💎 Diamond Learner'
+            : displayCompletedCount >= 6 ? '🥇 Gold Scholar'
+                : displayCompletedCount >= 3 ? '🥈 Silver Student'
                     : '🥉 Bronze Beginner';
 
     if (loading) {
@@ -143,17 +166,17 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="w-px bg-gray-700 hidden sm:block" />
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-white">{completedLessons}</p>
+                                    <p className="text-2xl font-bold text-white">{displayCompletedCount}</p>
                                     <p className="text-xs text-gray-500">Lessons Done</p>
                                 </div>
                                 <div className="w-px bg-gray-700 hidden sm:block" />
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-white">{completedLessons}</p>
+                                    <p className="text-2xl font-bold text-white">{displayCompletedCount}</p>
                                     <p className="text-xs text-gray-500">NFTs Earned</p>
                                 </div>
                                 <div className="w-px bg-gray-700 hidden sm:block" />
                                 <div className="text-center">
-                                    <p className="text-2xl font-bold text-white">{Math.round((completedLessons / 21) * 100)}%</p>
+                                    <p className="text-2xl font-bold text-white">{Math.round((displayCompletedCount / 21) * 100)}%</p>
                                     <p className="text-xs text-gray-500">Complete</p>
                                 </div>
                             </div>

@@ -12,11 +12,9 @@ export default function Navigation() {
   const { connected } = useWallet();
 
   const navLinks = [
-    { href: '/', label: 'Home', icon: '🏠' },
     { href: '/learn', label: 'Learn', icon: '📚' },
     { href: '/skill-tree', label: 'Skill Tree', icon: '🌳' },
     { href: '/achievements', label: 'Achievements', icon: '🏆' },
-    { href: '/leaderboard', label: 'Leaderboard', icon: '🥇' },
   ];
 
   return (

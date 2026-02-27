@@ -8,7 +8,7 @@ interface QuizModalProps {
     lessonTitle: string;
     lessonContent: string;
     subject: string;
-    onComplete: (result: QuizResult) => void;
+    onComplete: (result: QuizResult) => Promise<void>;
     onSkip: () => void;
 }
 
@@ -33,6 +33,7 @@ export default function QuizModal({ lessonTitle, lessonContent, subject, onCompl
     const [showExplanation, setShowExplanation] = useState(false);
     const [result, setResult] = useState<QuizResult | null>(null);
     const [error, setError] = useState('');
+    const [minting, setMinting] = useState(false);
 
     useEffect(() => {
         generateQuiz();
@@ -113,8 +114,14 @@ Rules:
         }
     };
 
-    const handleFinish = () => {
-        if (result) onComplete(result);
+    const handleFinish = async () => {
+        if (!result || minting) return;
+        setMinting(true);
+        try {
+            await onComplete(result);
+        } finally {
+            setMinting(false);
+        }
     };
 
     if (loading) {
@@ -230,12 +237,24 @@ Rules:
                     </div>
 
                     <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
+                        whileHover={minting ? {} : { scale: 1.05 }}
+                        whileTap={minting ? {} : { scale: 0.95 }}
                         onClick={handleFinish}
-                        className={`w-full py-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r ${cfg.color} shadow-lg hover:shadow-xl transition-all`}
+                        disabled={minting}
+                        className={`w-full py-4 rounded-xl font-bold text-white text-lg bg-gradient-to-r ${cfg.color} shadow-lg hover:shadow-xl transition-all disabled:opacity-70 flex items-center justify-center gap-3`}
                     >
-                        Mint {cfg.label} NFT 🚀
+                        {minting ? (
+                            <>
+                                <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                                />
+                                <span>Minting... Approve in Phantom 👛</span>
+                            </>
+                        ) : (
+                            <span>Mint {cfg.label} NFT 🚀</span>
+                        )}
                     </motion.button>
                 </motion.div>
             </div>

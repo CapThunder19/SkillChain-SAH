@@ -3,18 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { Home as HomeIcon, BookOpen, Award, Users, Sparkles } from 'lucide-react';
+import { BookOpen, Award, Sparkles } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 
 export default function TopNav() {
   const pathname = usePathname();
 
   const navLinks = [
-    { href: '/', label: 'Home', icon: HomeIcon },
     { href: '/learn', label: 'Learn', icon: BookOpen },
     { href: '/skill-tree', label: 'Skills', icon: Sparkles },
     { href: '/achievements', label: 'Achievements', icon: Award },
-    { href: '/leaderboard', label: 'Leaderboard', icon: Users },
   ];
 
   return (

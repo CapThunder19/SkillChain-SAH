@@ -1,9 +1,8 @@
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { mplTokenMetadata } from '@metaplex-foundation/mpl-token-metadata';
-import { generateSigner, publicKey, PublicKey } from '@metaplex-foundation/umi';
+import { mplTokenMetadata, createNft } from '@metaplex-foundation/mpl-token-metadata';
+import { generateSigner, percentAmount } from '@metaplex-foundation/umi';
 import { Connection } from '@solana/web3.js';
 import { walletAdapterIdentity } from '@metaplex-foundation/umi-signer-wallet-adapters';
-import { createTree, mintV1, mplBubblegum } from '@metaplex-foundation/mpl-bubblegum';
 
 export interface NFTMintOptions {
   lessonId: number;
@@ -25,9 +24,9 @@ export async function mintAchievementNFT(
   const quizScore = options?.quizScore ?? 0;
 
   try {
-    console.log('🎨 Starting cNFT minting process...');
+    console.log('🎨 Starting Standard NFT minting process...');
     console.log('Wallet:', wallet?.publicKey?.toString());
-    console.log('Rarity:', rarity, '| Score:', quizScore);
+    console.log('Lesson:', lessonTitle, '| Rarity:', rarity, '| Score:', quizScore);
 
     // Check wallet balance first
     const balance = await connection.getBalance(wallet.publicKey);
@@ -36,93 +35,71 @@ export async function mintAchievementNFT(
 
     if (balance < 0.01 * 1e9) {
       throw new Error(
-        `Insufficient SOL. Balance: ${balanceSOL.toFixed(4)} SOL. Need at least 0.01 SOL for minting.`
+        `Insufficient SOL. Balance: ${balanceSOL.toFixed(4)} SOL. Please get devnet SOL from https://faucet.solana.com`
       );
     }
 
-    // Create UMI instance
+    // Create UMI instance — Standard token-metadata (no Merkle Tree needed!)
     const umi = createUmi(connection.rpcEndpoint)
       .use(mplTokenMetadata())
-      .use(mplBubblegum())
       .use(walletAdapterIdentity(wallet));
 
     console.log('✓ UMI instance created');
 
-    // 1. Get or Create Merkle Tree (usually done once by the admin, but for this demo the user creates it if missing)
-    let treeAddressStr = localStorage.getItem('merkleTreeAddress');
-    let treePk: PublicKey;
+    // Build metadata URI from our server endpoint (no IPFS needed)
+    const appBase = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+    const base = process.env.NEXT_PUBLIC_APP_URL ?? appBase;
 
-    if (!treeAddressStr) {
-      console.log('🌲 No Merkle Tree found in local storage. Creating a new one (This costs ~0.01 SOL just once)...');
-      const merkleTree = generateSigner(umi);
-
-      const builder = await createTree(umi, {
-        merkleTree,
-        maxDepth: 14,
-        maxBufferSize: 64,
-      });
-      await builder.sendAndConfirm(umi);
-
-      treePk = merkleTree.publicKey;
-      localStorage.setItem('merkleTreeAddress', treePk.toString());
-      console.log('✅ Merkle Tree created:', treePk);
-    } else {
-      treePk = publicKey(treeAddressStr);
-      console.log('🌲 Using existing Merkle Tree:', treePk);
-    }
-
-    // Build metadata URI pointing to our on-chain API
-    const metadataUri = buildMetadataUri(lessonId, rarity, quizScore);
+    // Compact URL under 200 chars (Metaplex limit)
+    const fallback = `${base}/api/nft-metadata/${lessonId}?rarity=${rarity}&score=${quizScore}`;
+    const metadataUri = fallback.length <= 200 ? fallback : `${base}/api/nft-metadata/${lessonId}`;
+    const imageUri = `${base}/api/nft-image/${lessonId}?rarity=${rarity}&score=${quizScore}`;
     console.log('📋 Metadata URI:', metadataUri);
 
     // NFT name: keep under 32 bytes
     const nftName = buildNFTName(lessonId, rarity);
+    console.log('📝 NFT name:', nftName);
 
-    console.log('📝 Sending cNFT creation transaction...');
+    // Generate a fresh mint keypair — each NFT gets a unique on-chain address
+    const mint = generateSigner(umi);
 
-    // 2. Mint Compressed NFT
-    const tx = await mintV1(umi, {
-      leafOwner: umi.identity.publicKey,
-      merkleTree: treePk,
-      metadata: {
-        name: nftName,
-        uri: metadataUri,
-        sellerFeeBasisPoints: 0,
-        collection: { key: umi.identity.publicKey, verified: false },
-        creators: [
-          { address: umi.identity.publicKey, verified: false, share: 100 },
-        ],
-      },
+    console.log('📡 Sending NFT mint transaction...');
+
+    // Mint Standard NFT — shows up in Phantom/Solflare immediately on devnet
+    const tx = await createNft(umi, {
+      mint,
+      name: nftName,
+      symbol: 'TUTOR',
+      uri: metadataUri,
+      sellerFeeBasisPoints: percentAmount(0),
+      isCollection: false,
     }).sendAndConfirm(umi, {
       confirm: { commitment: 'confirmed' },
       send: { skipPreflight: false },
     });
 
-    console.log('✅ Compressed NFT created successfully!');
-    console.log('Signature:', tx.signature);
+    console.log('✅ Standard NFT minted successfully!');
+    console.log('Mint address:', mint.publicKey.toString());
 
     return {
       signature: tx.signature,
-      mintAddress: tx.signature, // For cNFTs, the exact mint address needs off-chain parsing or indexer. We return signature as a placeholder.
+      mintAddress: mint.publicKey,
       rarity,
       metadataUri,
+      imageUri,
     };
   } catch (error: any) {
-    console.error('❌ NFT Minting Error Details:');
-    console.error('Error message:', error.message);
+    console.error('❌ NFT Minting Error:', error.message);
 
     if (error.message?.includes('insufficient') || error.message?.includes('0x1')) {
       throw new Error(
-        `Insufficient SOL for minting. Please get devnet SOL from https://faucet.solana.com`
+        `Not enough SOL. Visit https://faucet.solana.com to get free devnet SOL.`
       );
     } else if (error.message?.includes('URI too long') || error.message?.includes('0xd')) {
-      throw new Error('Metadata URI too long. Please check the API URL length.');
+      throw new Error('Metadata URI too long.');
     } else if (error.message?.includes('blockhash') || error.message?.includes('timeout')) {
-      throw new Error('Transaction timeout. Network is slow, please try again.');
-    } else if (
-      error.message?.includes('User rejected') ||
-      error.message?.includes('rejected')
-    ) {
+      throw new Error('Transaction timed out. Network is slow — please try again.');
+    } else if (error.message?.includes('User rejected') || error.message?.includes('rejected')) {
       throw new Error('Transaction cancelled by user.');
     } else if (error.message?.includes('fetch')) {
       throw new Error('Network error. Check your internet connection.');
@@ -130,28 +107,6 @@ export async function mintAchievementNFT(
 
     throw new Error(`NFT minting failed: ${error.message || JSON.stringify(error)}`);
   }
-}
-
-/**
- * Builds the metadata URI pointing to our Next.js API route.
- * Kept short to stay within Metaplex's 200-char limit.
- */
-function buildMetadataUri(lessonId: number, rarity: string, score: number): string {
-  // Use environment variable if available, otherwise fall back to localhost
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
-
-  // Build a compact URL under 200 chars
-  const uri = `${base}/api/nft-metadata/${lessonId}?rarity=${rarity}&score=${score}`;
-
-  // Safety check
-  if (uri.length > 200) {
-    console.warn(`⚠️ Metadata URI is ${uri.length} chars, may exceed Metaplex limit.`);
-    return `${base}/api/nft-metadata/${lessonId}`;
-  }
-
-  return uri;
 }
 
 /**

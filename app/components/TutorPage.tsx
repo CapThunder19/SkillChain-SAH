@@ -69,15 +69,19 @@ export default function TutorPage() {
         setTutorExists(true);
         setLevel(profile.level);
 
-        // Mark lessons as completed based on level
-        const completedLessonCount = profile.level - 1;
+        // Use per-lesson localStorage tracking so completing Blockchain lesson
+        // doesn't accidentally mark Web Dev lessons as complete.
+        const completedIds: number[] = JSON.parse(
+          localStorage.getItem(`completedLessons_${publicKey.toString()}`) ?? '[]'
+        );
+
         setCourses((prevCourses) =>
           prevCourses.map((course) => ({
             ...course,
             lessons: course.lessons.map((lesson) => ({
               ...lesson,
-              completed: lesson.id <= completedLessonCount,
-              nftMinted: lesson.id <= completedLessonCount,
+              completed: completedIds.includes(lesson.id),
+              nftMinted: completedIds.includes(lesson.id),
             })),
           }))
         );
@@ -189,7 +193,22 @@ export default function TutorPage() {
   };
 
   const handleLessonComplete = async (quizResult?: QuizResult) => {
-    if (!publicKey || !wallet || !currentLesson) return;
+    console.log('🎯 handleLessonComplete called', { publicKey: publicKey?.toString(), wallet: !!wallet, currentLesson: currentLesson?.id, quizResult });
+
+    if (!publicKey || !wallet) {
+      toast.error('Wallet not connected', { description: 'Please connect your Phantom wallet first.' });
+      return;
+    }
+    if (!currentLesson) {
+      toast.error('No lesson selected', { description: 'Please select a lesson first.' });
+      return;
+    }
+
+    // ⚠️ CRITICAL: freeze lesson + course into local consts RIGHT NOW.
+    // React state can drift during the async operations below.
+    // All references below MUST use these local copies, not the state vars.
+    const lessonSnapshot = currentLesson;
+    const courseSnapshot = selectedCourse;
 
     setLoading(true);
     let nftResult: { signature: Uint8Array; mintAddress: any } | null = null;
@@ -210,7 +229,7 @@ export default function TutorPage() {
 
       // 2. Update progress on-chain FIRST (most important)
       const newLevel = level + 1;
-      const milestoneHash = generateMilestoneHash(currentLesson.id);
+      const milestoneHash = generateMilestoneHash(lessonSnapshot.id);
 
       const program = getProgram(connection, wallet.adapter);
       const signature = await updateProgress(program, publicKey, newLevel, milestoneHash);
@@ -218,15 +237,36 @@ export default function TutorPage() {
       console.log('Progress updated:', signature);
 
       // Persist level for leaderboard
-      localStorage.setItem('userLevel', String(newLevel));
+      localStorage.setItem(`userLevel_${publicKey.toString()}`, String(newLevel));
 
-      // 3. Update local state immediately
+      // 3. Update local state immediately + persist completed lessonId separately
       setLevel(newLevel);
+
+      // Save this specific lessonId as completed (not a global sequential counter)
+      const completedIds: number[] = JSON.parse(
+        localStorage.getItem(`completedLessons_${publicKey.toString()}`) ?? '[]'
+      );
+      if (!completedIds.includes(lessonSnapshot.id)) {
+        completedIds.push(lessonSnapshot.id);
+        localStorage.setItem(`completedLessons_${publicKey.toString()}`, JSON.stringify(completedIds));
+      }
+
+      // Persist rarity + score for this specific lesson so achievements page reads correct data
+      const lessonMetaKey = `nftMeta_${publicKey.toString()}`;
+      const existingMeta: Record<string, { rarity: string; score: number }> = JSON.parse(
+        localStorage.getItem(lessonMetaKey) ?? '{}'
+      );
+      existingMeta[String(lessonSnapshot.id)] = {
+        rarity: quizResult?.rarity ?? 'common',
+        score: quizResult?.percentage ?? 0,
+      };
+      localStorage.setItem(lessonMetaKey, JSON.stringify(existingMeta));
+
       setCourses((prevCourses) =>
         prevCourses.map((course) => ({
           ...course,
           lessons: course.lessons.map((l) =>
-            l.id === currentLesson.id
+            l.id === lessonSnapshot.id
               ? { ...l, completed: true, nftMinted: false }
               : l
           ),
@@ -268,8 +308,8 @@ export default function TutorPage() {
         nftResult = await mintAchievementNFT(
           connection,
           wallet.adapter,
-          currentLesson.title,
-          currentLesson.id,
+          lessonSnapshot.title,   // ← the lesson user actually completed
+          lessonSnapshot.id,      // ← correct lesson ID for NFT artwork
           {
             rarity: quizResult?.rarity ?? 'common',
             quizScore: quizResult?.percentage ?? 0,
@@ -284,7 +324,7 @@ export default function TutorPage() {
           prevCourses.map((course) => ({
             ...course,
             lessons: course.lessons.map((l) =>
-              l.id === currentLesson.id
+              l.id === lessonSnapshot.id
                 ? { ...l, nftMinted: true }
                 : l
             ),
@@ -295,7 +335,7 @@ export default function TutorPage() {
           setAchievements((prev) => [
             ...prev,
             {
-              lesson: currentLesson.title,
+              lesson: lessonSnapshot.title,
               mintAddress: nftResult!.mintAddress.toString(),
               timestamp: Date.now(),
               rarity: quizResult?.rarity ?? 'common',
@@ -319,9 +359,11 @@ export default function TutorPage() {
         });
       }
 
-      // 4. Move to next lesson
-      const allLessons = courses.flatMap(c => c.lessons);
-      const nextLesson = allLessons.find((l) => !l.completed && l.id > currentLesson.id);
+      // Move to next lesson — stay within the SAME course (use snapshots)
+      const sameCourse = courses.find(c => c.id === courseSnapshot?.id);
+      const nextLesson = sameCourse?.lessons.find(
+        (l) => !l.completed && l.id > lessonSnapshot.id
+      );
       if (nextLesson) {
         setCurrentLesson(nextLesson);
       }

@@ -11,7 +11,7 @@ import ReactMarkdown from 'react-markdown';
 interface LessonViewerProps {
   lesson: Lesson;
   subject: string;
-  onComplete: (quizResult?: QuizResult) => void;
+  onComplete: (quizResult?: QuizResult) => void | Promise<void>;
 }
 
 export default function LessonViewer({ lesson, subject, onComplete }: LessonViewerProps) {
@@ -25,9 +25,10 @@ export default function LessonViewer({ lesson, subject, onComplete }: LessonView
     }
   };
 
-  const handleQuizComplete = (result: QuizResult) => {
+  const handleQuizComplete = async (result: QuizResult) => {
+    // Keep quiz open (spinner visible) until lesson complete finishes
+    await onComplete(result);
     setShowQuiz(false);
-    onComplete(result);
   };
 
   const handleQuizSkip = () => {

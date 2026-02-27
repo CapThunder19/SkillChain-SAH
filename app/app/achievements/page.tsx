@@ -24,29 +24,39 @@ interface NFTData {
   timestamp?: number;
 }
 
-// Derive rarity deterministically from lesson ID (simulated for on-chain data)
-function deriveRarity(lessonId: number, level: number): Rarity {
-  const val = (lessonId * 17 + level * 7) % 10;
-  if (val >= 9) return 'legendary';
-  if (val >= 5) return 'rare';
-  return 'common';
-}
-
-function buildNFTs(completedLessons: number, level: number): NFTData[] {
+function buildNFTs(
+  completedIds: number[],
+  level: number,
+  nftMeta: Record<string, { rarity: string; score: number }>
+): NFTData[] {
   const nfts: NFTData[] = [];
+
+  // If localStorage array is missing or empty, fall back to sequential up to (level - 1)
+  const legacyCount = level > 1 ? level - 1 : 0;
+  const useLegacy = completedIds.length === 0;
+
   for (const course of COURSES) {
     for (const lesson of course.lessons) {
-      if (lesson.id <= completedLessons) {
+      const isCompleted = useLegacy
+        ? lesson.id <= legacyCount
+        : completedIds.includes(lesson.id);
+
+      if (isCompleted) {
+        // Read the actual rarity + score that was saved during minting
+        const meta = nftMeta[String(lesson.id)];
+        const rarity: Rarity = (meta?.rarity as Rarity) ?? 'common';
+        const quizScore = meta?.score ?? 0;
+
         nfts.push({
           lessonId: lesson.id,
           lessonTitle: lesson.title,
           courseTitle: course.title,
           courseIcon: course.icon,
           courseId: course.id,
-          rarity: deriveRarity(lesson.id, level),
-          quizScore: undefined,
+          rarity,
+          quizScore,
           mintAddress: undefined,
-          timestamp: Date.now() - (completedLessons - lesson.id) * 86400000,
+          timestamp: Date.now() - (lesson.id * 1000000),
         });
       }
     }
@@ -81,7 +91,17 @@ export default function AchievementsPage() {
       const tutorProfile = await fetchTutorProfile(program, publicKey);
       if (tutorProfile) {
         setProfile(tutorProfile);
-        setNfts(buildNFTs(tutorProfile.level - 1, tutorProfile.level));
+
+        let completedIds: number[] = [];
+        let nftMeta: Record<string, { rarity: string; score: number }> = {};
+        try {
+          const stored = localStorage.getItem(`completedLessons_${publicKey.toString()}`);
+          if (stored) completedIds = JSON.parse(stored);
+          const storedMeta = localStorage.getItem(`nftMeta_${publicKey.toString()}`);
+          if (storedMeta) nftMeta = JSON.parse(storedMeta);
+        } catch (err) { }
+
+        setNfts(buildNFTs(completedIds, tutorProfile.level, nftMeta));
       }
     } catch (e) {
       console.error('Error loading profile:', e);
@@ -144,7 +164,7 @@ export default function AchievementsPage() {
     );
   }
 
-  const completedLessons = profile.level - 1;
+  const completedCount = nfts.length;
 
   return (
     <div className="min-h-screen bg-[var(--bg)] py-6 px-6 md:px-8 lg:px-10">
@@ -199,12 +219,12 @@ export default function AchievementsPage() {
           <div className="relative z-10 mt-6">
             <div className="flex justify-between text-sm text-gray-400 mb-2">
               <span>Overall Progress</span>
-              <span>{completedLessons}/21 lessons · Level {profile.level}</span>
+              <span>{completedCount}/21 lessons · Level {profile.level}</span>
             </div>
             <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min((completedLessons / 21) * 100, 100)}%` }}
+                animate={{ width: `${Math.min((completedCount / 21) * 100, 100)}%` }}
                 transition={{ duration: 1.2, delay: 0.3 }}
                 className="h-full rounded-full bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500"
               />
@@ -276,8 +296,8 @@ export default function AchievementsPage() {
             ))}
 
             {/* Locked placeholder cards */}
-            {completedLessons < 21 && filter === 'all' && (
-              Array.from({ length: Math.min(3, 21 - completedLessons) }).map((_, i) => (
+            {completedCount < 21 && filter === 'all' && (
+              Array.from({ length: Math.min(3, 21 - completedCount) }).map((_, i) => (
                 <motion.div
                   key={`locked-${i}`}
                   initial={{ opacity: 0 }}

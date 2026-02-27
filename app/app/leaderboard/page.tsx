@@ -68,7 +68,7 @@ export default function LeaderboardPage() {
         if (publicKey && connected) {
             const shortWallet = `${publicKey.toBase58().slice(0, 6)}...${publicKey.toBase58().slice(-4)}`;
             // Add the connected user dynamically (level from localStorage or default 1)
-            const storedLevel = parseInt(localStorage.getItem('userLevel') ?? '1');
+            const storedLevel = parseInt(localStorage.getItem(`userLevel_${publicKey.toString()}`) ?? '1');
             const userEntry: LeaderEntry = {
                 wallet: shortWallet,
                 level: storedLevel,
