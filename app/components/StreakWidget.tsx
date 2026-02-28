@@ -6,7 +6,7 @@ import { StreakData } from '@/lib/types';
 import { getStreak, getStreakEmoji } from '@/lib/streak';
 
 interface StreakWidgetProps {
-    compact?: boolean; // When true: inline row for sidebar
+    compact?: boolean;
 }
 
 export default function StreakWidget({ compact = false }: StreakWidgetProps) {
@@ -20,7 +20,6 @@ export default function StreakWidget({ compact = false }: StreakWidgetProps) {
     const emoji = getStreakEmoji(streak.currentStreak);
     const isActive = streak.currentStreak > 0;
 
-    // ── Compact mode (sidebar inline) ──
     if (compact) {
         return (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -47,7 +46,6 @@ export default function StreakWidget({ compact = false }: StreakWidgetProps) {
         );
     }
 
-    // ── Full mode (header/top-nav) ──
     return (
         <div style={{ position: 'relative' }}>
             <motion.button

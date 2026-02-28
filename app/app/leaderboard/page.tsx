@@ -62,12 +62,9 @@ export default function LeaderboardPage() {
     const [filter, setFilter] = useState<'all' | 'weekly'>('all');
     const [loading, setLoading] = useState(false);
 
-    // In production you'd fetch real on-chain accounts here.
-    // For now we show simulated leaderboard with the current user injected.
     useEffect(() => {
         if (publicKey && connected) {
             const shortWallet = `${publicKey.toBase58().slice(0, 6)}...${publicKey.toBase58().slice(-4)}`;
-            // Add the connected user dynamically (level from localStorage or default 1)
             const storedLevel = parseInt(localStorage.getItem(`userLevel_${publicKey.toString()}`) ?? '1');
             const userEntry: LeaderEntry = {
                 wallet: shortWallet,

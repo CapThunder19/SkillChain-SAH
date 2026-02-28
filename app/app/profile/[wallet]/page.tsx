@@ -37,7 +37,6 @@ export default function ProfilePage() {
             const connection = new Connection(RPC_ENDPOINT, 'confirmed');
             const pubkey = new PublicKey(walletAddress);
 
-            // Create a read-only dummy wallet for provider
             const dummyWallet = {
                 publicKey: pubkey,
                 signTransaction: async (tx: any) => tx,
@@ -68,7 +67,6 @@ export default function ProfilePage() {
     let initialLevel = profile ? profile.level : 1;
     let completedLessonsCount = initialLevel > 1 ? initialLevel - 1 : 0;
 
-    // Attempt to load proper non-sequential progression from localStorage
     let completedIds: number[] = [];
     if (typeof window !== 'undefined') {
         try {

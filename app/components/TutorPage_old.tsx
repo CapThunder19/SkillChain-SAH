@@ -22,7 +22,6 @@ export default function TutorPage() {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [level, setLevel] = useState(1);
 
-  // Check if tutor profile exists
   useEffect(() => {
     if (publicKey && connected) {
       checkTutorProfile();
@@ -41,9 +40,6 @@ export default function TutorPage() {
         setSubject(profile.subject);
         setLevel(profile.level);
         
-        // Mark lessons as completed based on level
-        // Level starts at 1, each completed lesson increments it by 1
-        // So level 2 means lesson 1 is done, level 3 means lessons 1-2 are done, etc.
         const completedLessonCount = profile.level - 1;
         setLessons((prev) =>
           prev.map((lesson) => ({
@@ -53,7 +49,7 @@ export default function TutorPage() {
           }))
         );
         
-        // Set current lesson to the next incomplete one
+
         const nextLesson = LESSONS.find((l) => l.id === completedLessonCount + 1);
         if (nextLesson) {
           setCurrentLesson(nextLesson);
@@ -92,7 +88,6 @@ export default function TutorPage() {
     
     setLoading(true);
     try {
-      // 1. Mint NFT Achievement
       console.log('Minting achievement NFT...');
       const nftResult = await mintAchievementNFT(
         connection,
@@ -103,7 +98,6 @@ export default function TutorPage() {
       
       console.log('NFT Minted:', nftResult.mintAddress);
       
-      // 2. Update progress on-chain
       const newLevel = level + 1;
       const milestoneHash = generateMilestoneHash(currentLesson.id);
       
@@ -112,7 +106,6 @@ export default function TutorPage() {
       
       console.log('Progress updated:', signature);
       
-      // 3. Update local state
       setLevel(newLevel);
       setLessons((prev) =>
         prev.map((l) =>
@@ -133,7 +126,6 @@ export default function TutorPage() {
       
       alert(`🎉 Congratulations! Lesson completed!\n\nNFT Minted: ${nftResult.mintAddress}\nNew Level: ${newLevel}`);
       
-      // Move to next lesson
       const nextLesson = lessons.find((l) => !l.completed && l.id > currentLesson.id);
       if (nextLesson) {
         setCurrentLesson(nextLesson);

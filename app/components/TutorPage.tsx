@@ -50,7 +50,6 @@ export default function TutorPage() {
       setWalletBalance(balance / 1e9);
       console.log('💰 Wallet balance:', balance / 1e9, 'SOL');
 
-      // Check LEARN token balance
       const tokenBalance = await getLearnTokenBalance(connection, publicKey);
       setLearnTokenBalance(tokenBalance);
     } catch (error) {
@@ -69,8 +68,6 @@ export default function TutorPage() {
         setTutorExists(true);
         setLevel(profile.level);
 
-        // Use per-lesson localStorage tracking so completing Blockchain lesson
-        // doesn't accidentally mark Web Dev lessons as complete.
         const completedIds: number[] = JSON.parse(
           localStorage.getItem(`completedLessons_${publicKey.toString()}`) ?? '[]'
         );
@@ -167,10 +164,8 @@ export default function TutorPage() {
     if (!currentLesson) return;
     setIsGrading(true);
 
-    // Simulate grading for faster dev/testing, but in prod this hits an AI route
     const prompt = `Grade this code for lesson "${currentLesson.title}". The code is:\n\n${userCode}`;
     try {
-      // In a real prod environment we'd hit /api/chat or /api/grade here
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -178,8 +173,6 @@ export default function TutorPage() {
       });
       const data = await res.json();
 
-      // We parse the AI's response to see if it passed or failed (assuming it says 'PASS' or 'FAIL')
-      // For this demo, we'll just automatically pass them if they wrote > 10 chars
       if (userCode.length > 10 && !userCode.includes('// Write')) {
         toast.success("✅ Code Passed! The AI reviewer approved your solution.");
         handleLessonComplete();
@@ -204,9 +197,6 @@ export default function TutorPage() {
       return;
     }
 
-    // ⚠️ CRITICAL: freeze lesson + course into local consts RIGHT NOW.
-    // React state can drift during the async operations below.
-    // All references below MUST use these local copies, not the state vars.
     const lessonSnapshot = currentLesson;
     const courseSnapshot = selectedCourse;
 
@@ -214,7 +204,6 @@ export default function TutorPage() {
     let nftResult: { signature: Uint8Array; mintAddress: any } | null = null;
 
     try {
-      // 1. Record streak activity
       const streakData = recordActivity();
       const streakEmoji = getStreakEmoji(streakData.currentStreak);
       if (streakData.currentStreak > 0) {
@@ -227,7 +216,6 @@ export default function TutorPage() {
         }
       }
 
-      // 2. Update progress on-chain FIRST (most important)
       const newLevel = level + 1;
       const milestoneHash = generateMilestoneHash(lessonSnapshot.id);
 
@@ -236,13 +224,10 @@ export default function TutorPage() {
 
       console.log('Progress updated:', signature);
 
-      // Persist level for leaderboard
       localStorage.setItem(`userLevel_${publicKey.toString()}`, String(newLevel));
 
-      // 3. Update local state immediately + persist completed lessonId separately
       setLevel(newLevel);
 
-      // Save this specific lessonId as completed (not a global sequential counter)
       const completedIds: number[] = JSON.parse(
         localStorage.getItem(`completedLessons_${publicKey.toString()}`) ?? '[]'
       );
@@ -251,7 +236,6 @@ export default function TutorPage() {
         localStorage.setItem(`completedLessons_${publicKey.toString()}`, JSON.stringify(completedIds));
       }
 
-      // Persist rarity + score for this specific lesson so achievements page reads correct data
       const lessonMetaKey = `nftMeta_${publicKey.toString()}`;
       const existingMeta: Record<string, { rarity: string; score: number }> = JSON.parse(
         localStorage.getItem(lessonMetaKey) ?? '{}'
@@ -282,7 +266,6 @@ export default function TutorPage() {
         duration: 4000,
       });
 
-      // Reward SPL tokens
       try {
         console.log('🪙 Rewarding $LEARN tokens...');
         await awardLearnTokens(connection, wallet.adapter, 10);
@@ -299,7 +282,6 @@ export default function TutorPage() {
         console.error('❌ Token reward failed:', tokenError);
       }
 
-      // 4. Try to mint NFT (optional - don't fail if this doesn't work)
       try {
         console.log('🎨 Starting NFT minting...');
         console.log('Wallet adapter:', wallet.adapter);
@@ -308,8 +290,8 @@ export default function TutorPage() {
         nftResult = await mintAchievementNFT(
           connection,
           wallet.adapter,
-          lessonSnapshot.title,   // ← the lesson user actually completed
-          lessonSnapshot.id,      // ← correct lesson ID for NFT artwork
+          lessonSnapshot.title,
+          lessonSnapshot.id,
           {
             rarity: quizResult?.rarity ?? 'common',
             quizScore: quizResult?.percentage ?? 0,
@@ -319,7 +301,6 @@ export default function TutorPage() {
         console.log('✅ NFT Minted successfully!');
         console.log('Mint address:', nftResult.mintAddress);
 
-        // Update NFT status
         setCourses((prevCourses) =>
           prevCourses.map((course) => ({
             ...course,
@@ -352,14 +333,12 @@ export default function TutorPage() {
         console.error('❌ NFT minting failed (non-critical):', nftError);
         console.error('Error details:', nftError.message);
 
-        // Show more helpful error message
         toast.warning('Lesson completed, but NFT minting failed', {
           description: nftError.message || 'Try again or get devnet SOL from faucet',
           duration: 5000,
         });
       }
 
-      // Move to next lesson — stay within the SAME course (use snapshots)
       const sameCourse = courses.find(c => c.id === courseSnapshot?.id);
       const nextLesson = sameCourse?.lessons.find(
         (l) => !l.completed && l.id > lessonSnapshot.id
@@ -368,7 +347,6 @@ export default function TutorPage() {
         setCurrentLesson(nextLesson);
       }
 
-      // Refresh wallet balance
       checkWalletBalance();
     } catch (error: any) {
       console.error('Error completing lesson:', error);

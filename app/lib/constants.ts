@@ -1,13 +1,10 @@
 import { PublicKey } from '@solana/web3.js';
 import { Course } from './types';
 
-// Program ID from your Anchor deployment
 export const PROGRAM_ID = new PublicKey('DC5BMrRcTAQEk2N8B6eYzxDyuCWXjLVqP3MJEg8F2fgu');
 
-// RPC endpoint - now using devnet
 export const RPC_ENDPOINT = 'https://api.devnet.solana.com';
 
-// Available Courses
 export const COURSES: Course[] = [
   {
     id: 'web-development',
@@ -632,5 +629,4 @@ Cybersecurity is the practice of protecting systems, networks, and data from dig
   },
 ];
 
-// Legacy lessons array for backward compatibility
 export const LESSONS = COURSES.flatMap(course => course.lessons);

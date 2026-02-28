@@ -28,7 +28,6 @@ export async function mintAchievementNFT(
     console.log('Wallet:', wallet?.publicKey?.toString());
     console.log('Lesson:', lessonTitle, '| Rarity:', rarity, '| Score:', quizScore);
 
-    // Check wallet balance first
     const balance = await connection.getBalance(wallet.publicKey);
     const balanceSOL = balance / 1e9;
     console.log(`💰 Wallet balance: ${balanceSOL} SOL`);
@@ -39,33 +38,27 @@ export async function mintAchievementNFT(
       );
     }
 
-    // Create UMI instance — Standard token-metadata (no Merkle Tree needed!)
     const umi = createUmi(connection.rpcEndpoint)
       .use(mplTokenMetadata())
       .use(walletAdapterIdentity(wallet));
 
     console.log('✓ UMI instance created');
 
-    // Build metadata URI from our server endpoint (no IPFS needed)
     const appBase = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const base = process.env.NEXT_PUBLIC_APP_URL ?? appBase;
 
-    // Compact URL under 200 chars (Metaplex limit)
     const fallback = `${base}/api/nft-metadata/${lessonId}?rarity=${rarity}&score=${quizScore}`;
     const metadataUri = fallback.length <= 200 ? fallback : `${base}/api/nft-metadata/${lessonId}`;
     const imageUri = `${base}/api/nft-image/${lessonId}?rarity=${rarity}&score=${quizScore}`;
     console.log('📋 Metadata URI:', metadataUri);
 
-    // NFT name: keep under 32 bytes
     const nftName = buildNFTName(lessonId, rarity);
     console.log('📝 NFT name:', nftName);
 
-    // Generate a fresh mint keypair — each NFT gets a unique on-chain address
     const mint = generateSigner(umi);
 
     console.log('📡 Sending NFT mint transaction...');
 
-    // Mint Standard NFT — shows up in Phantom/Solflare immediately on devnet
     const tx = await createNft(umi, {
       mint,
       name: nftName,
@@ -109,13 +102,9 @@ export async function mintAchievementNFT(
   }
 }
 
-/**
- * Builds a short NFT name with rarity prefix, max 32 bytes.
- */
 function buildNFTName(lessonId: number, rarity: string): string {
   const prefix = rarity === 'legendary' ? '🥇' : rarity === 'rare' ? '🥈' : '🥉';
   const name = `${prefix} Tutor #${String(lessonId).padStart(3, '0')}`;
-  // Ensure under 32 bytes (emojis can be 4 bytes each)
   return name.length > 28 ? `Tutor #${String(lessonId).padStart(3, '0')}` : name;
 }
 

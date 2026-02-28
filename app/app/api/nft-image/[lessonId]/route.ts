@@ -62,7 +62,7 @@ export async function GET(
 
     const lessonTitle = escapeXml(truncate(info?.lesson.title ?? `Lesson ${id}`, 26));
     const courseTitle = escapeXml(truncate(info?.course.title ?? 'AI Tutor', 24));
-    const courseIcon = info?.course.icon ?? '\u{1F393}'; // graduation cap fallback
+    const courseIcon = info?.course.icon ?? '\u{1F393}';
     const courseId = info?.course.id ?? 'web-development';
 
     const r = RARITY_STYLES[rarityKey] ?? RARITY_STYLES.common;
@@ -72,7 +72,6 @@ export async function GET(
     const idStr = String(id).padStart(3, '0');
     const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    // Score row (only when score > 0)
     const scoreRow = score > 0
       ? `<text x="145" y="548" font-size="9" font-family="Arial" fill="${r.accent}" opacity="0.6" letter-spacing="1">QUIZ SCORE</text>
          <text x="355" y="548" font-size="9" font-family="Arial" fill="${r.accent}" text-anchor="end" font-weight="bold">${score}%</text>
@@ -222,7 +221,6 @@ export async function GET(
     });
   } catch (err: any) {
     console.error('NFT image generation error:', err);
-    // Return a simple fallback SVG
     const fallback = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="700" viewBox="0 0 500 700">
       <rect width="500" height="700" rx="28" fill="#1a1a2e"/>
       <text x="250" y="350" font-size="48" text-anchor="middle" fill="#9ca3af">🎓</text>

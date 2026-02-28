@@ -37,7 +37,6 @@ function generateSVG(
     const r = RARITY_COLORS[rarity] ?? RARITY_COLORS.common;
     const cg = COURSE_GRADIENTS[courseId] ?? { from: '#4c1d95', to: '#1e40af' };
 
-    // Truncate long titles
     const shortTitle = lessonTitle.length > 22 ? lessonTitle.slice(0, 22) + '…' : lessonTitle;
     const shortCourse = courseTitle.length > 20 ? courseTitle.slice(0, 20) + '…' : courseTitle;
 
@@ -151,12 +150,10 @@ export async function GET(
     const courseIcon = info?.course.icon ?? '🎓';
     const courseId = info?.course.id ?? 'web-development';
 
-    // Generate SVG art
     const svg = generateSVG(id, lessonTitle, courseTitle, courseIcon, courseId, rarity, score);
     const svgBase64 = Buffer.from(svg).toString('base64');
     const imageDataUri = `data:image/svg+xml;base64,${svgBase64}`;
 
-    // Build NFT metadata JSON (OpenSea / Metaplex standard)
     const metadata = {
         name: `${lessonTitle} #${String(id).padStart(3, '0')}`,
         symbol: 'TUTOR',

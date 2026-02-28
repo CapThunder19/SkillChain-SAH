@@ -31,7 +31,6 @@ function buildNFTs(
 ): NFTData[] {
   const nfts: NFTData[] = [];
 
-  // If localStorage array is missing or empty, fall back to sequential up to (level - 1)
   const legacyCount = level > 1 ? level - 1 : 0;
   const useLegacy = completedIds.length === 0;
 
@@ -42,7 +41,6 @@ function buildNFTs(
         : completedIds.includes(lesson.id);
 
       if (isCompleted) {
-        // Read the actual rarity + score that was saved during minting
         const meta = nftMeta[String(lesson.id)];
         const rarity: Rarity = (meta?.rarity as Rarity) ?? 'common';
         const quizScore = meta?.score ?? 0;
@@ -118,7 +116,6 @@ export default function AchievementsPage() {
     common: nfts.filter(n => n.rarity === 'common').length,
   };
 
-  // ── Not connected ──
   if (!connected) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center py-6 px-6 md:px-8 lg:px-10">
@@ -134,7 +131,6 @@ export default function AchievementsPage() {
     );
   }
 
-  // ── Loading ──
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center py-6 px-6 md:px-8 lg:px-10">
@@ -148,7 +144,6 @@ export default function AchievementsPage() {
     );
   }
 
-  // ── No profile ──
   if (!profile) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center py-6 px-6 md:px-8 lg:px-10">

@@ -2,7 +2,6 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactCompiler: false,
-  // Force Next.js to transpile Solana wallet ESM-only packages
   transpilePackages: [
     '@solana/wallet-adapter-base',
     '@solana/wallet-adapter-react',
@@ -17,10 +16,8 @@ const nextConfig: NextConfig = {
     '@wallet-standard/features',
     '@wallet-standard/wallet',
   ],
-  // Next.js 16 defaults to Turbopack — must also provide turbopack config when using webpack
   turbopack: {
     resolveAlias: {
-      // Provide browser-safe no-op aliases for Node.js built-ins used by Solana packages
       fs: { browser: './node_modules/browserify-fs' },
       os: { browser: 'os-browserify/browser' },
       path: { browser: 'path-browserify' },

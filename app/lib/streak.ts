@@ -22,7 +22,6 @@ export function recordActivity(): StreakData {
     const current = getStreak();
 
     if (current.lastActivityDate === today) {
-        // Already logged today, no change
         return current;
     }
 
@@ -33,10 +32,8 @@ export function recordActivity(): StreakData {
     let newStreak = current.currentStreak;
 
     if (current.lastActivityDate === yesterdayStr) {
-        // Consecutive day
         newStreak += 1;
     } else {
-        // Streak broken
         newStreak = 1;
     }
 

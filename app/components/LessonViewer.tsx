@@ -26,7 +26,6 @@ export default function LessonViewer({ lesson, subject, onComplete }: LessonView
   };
 
   const handleQuizComplete = async (result: QuizResult) => {
-    // Keep quiz open (spinner visible) until lesson complete finishes
     await onComplete(result);
     setShowQuiz(false);
   };
@@ -64,13 +63,10 @@ export default function LessonViewer({ lesson, subject, onComplete }: LessonView
     </motion.div>
   );
 
-  // For document and video lessons, show a two-column layout with NFT preview sidebar
   const withNFTPreview = (contentEl: React.ReactNode) => (
     <div className="flex gap-4 h-full">
-      {/* Main content */}
       <div className="flex-1 min-w-0 flex flex-col">{contentEl}</div>
 
-      {/* NFT reward sidebar — only when NOT completed */}
       {!lesson.completed && (
         <div className="w-52 flex-shrink-0 hidden lg:block">
           <NFTRewardPreview lessonId={lesson.id} lessonTitle={lesson.title} />

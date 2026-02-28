@@ -20,7 +20,6 @@ function getCourseForLesson(lessonId: number) {
 export default function NFTRewardPreview({ lessonId, lessonTitle }: NFTRewardPreviewProps) {
     const course = getCourseForLesson(lessonId);
 
-    // Generate a blurred common preview — no network request
     const previewSrc = useMemo(() => generateNFTDataUri({
         lessonId,
         lessonTitle,

@@ -74,7 +74,6 @@ export function StatsGrid({ children, className }: { children: React.ReactNode; 
   );
 }
 
-// Pre-configured stat cards
 export function LevelStatsCard({ level, className }: { level: number; className?: string }) {
   return (
     <StatsCard

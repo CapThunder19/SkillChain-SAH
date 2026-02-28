@@ -39,7 +39,6 @@ export default function SkillTreePage() {
         setLoading(false);
     };
 
-    // Build flat nodes for each lesson across all courses
     const allLessons: SkillNode[] = [];
     COURSES.forEach((course, ci) => {
         course.lessons.forEach((lesson, li) => {

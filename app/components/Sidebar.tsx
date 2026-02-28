@@ -41,10 +41,8 @@ export default function Sidebar() {
 
     useEffect(() => { setMounted(true); }, []);
 
-    // Close mobile sidebar on route change
     useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-    // Sync CSS variable with collapsed state
     useEffect(() => {
         document.documentElement.style.setProperty(
             '--sidebar-actual-w',

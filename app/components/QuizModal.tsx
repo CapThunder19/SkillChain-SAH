@@ -101,7 +101,6 @@ Rules:
         const newAnswers = [...answers, selected];
 
         if (currentQ + 1 >= questions.length) {
-            // Quiz done
             const correct = newAnswers.filter((a, i) => a === questions[i].correctIndex).length;
             const pct = Math.round((correct / questions.length) * 100);
             const rarity = getRarity(pct);

@@ -58,7 +58,6 @@ export default function NFTCard({
     const [tiltY, setTiltY] = useState(0);
     const [shimmerPos, setShimmerPos] = useState({ x: 50, y: 50 });
 
-    // Generate SVG data URI once (memoized) — no network request
     const imgSrc = useMemo(() => generateNFTDataUri({
         lessonId, lessonTitle, courseTitle, courseIcon, courseId, rarity,
         quizScore: quizScore ?? 0,

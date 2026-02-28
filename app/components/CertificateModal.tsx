@@ -35,7 +35,6 @@ export default function CertificateModal({
     const { icon, id: courseId } = getCourseInfo(lessonId);
     const rl = RARITY_LABEL[rarity];
 
-    // Generate data URI client-side
     const imgSrc = useMemo(() => generateNFTDataUri({
         lessonId, lessonTitle, courseTitle,
         courseIcon: icon,
@@ -44,7 +43,6 @@ export default function CertificateModal({
         quizScore: quizScore ?? 0,
     }), [lessonId, lessonTitle, courseTitle, icon, courseId, rarity, quizScore]);
 
-    // Close on Escape
     useEffect(() => {
         const fn = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
         window.addEventListener('keydown', fn);

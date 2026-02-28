@@ -1,8 +1,3 @@
-/**
- * Generates an NFT certificate SVG fully client-side as a data URI.
- * No network request needed — embeds directly in <img src="...">
- */
-
 export interface NFTSvgOptions {
     lessonId: number;
     lessonTitle: string;
@@ -158,10 +153,8 @@ export function generateNFTSvg(opts: NFTSvgOptions): string {
 </svg>`;
 }
 
-/** Returns a data URI (base64 encoded) for use in <img src="..."> */
 export function generateNFTDataUri(opts: NFTSvgOptions): string {
     const svg = generateNFTSvg(opts);
-    // Use base64 encoding for maximum compatibility
     const b64 = btoa(unescape(encodeURIComponent(svg)));
     return `data:image/svg+xml;base64,${b64}`;
 }

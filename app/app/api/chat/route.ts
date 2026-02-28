@@ -22,11 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Gemini client
     console.log('Initializing Gemini client...');
     const genAI = new GoogleGenerativeAI(apiKey);
 
-    // System prompt for the AI tutor
     const systemPrompt = `You are an expert tutor specializing in ${subject}. 
 You are currently teaching: ${currentLesson?.title || 'general concepts'}.
 
@@ -39,19 +37,16 @@ Your role is to:
 
 Keep responses concise but informative. Use analogies when helpful.`;
 
-    // Get the Gemini model
     console.log('Getting Gemini model...');
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
     });
     
-    // Build conversation history with system prompt
     const lastUserMessage = messages[messages.length - 1];
     const conversationContext = messages.slice(0, -1)
       .map((msg: any) => `${msg.role === 'user' ? 'Student' : 'Tutor'}: ${msg.content}`)
       .join('\n\n');
     
-    // Full prompt with context
     const fullPrompt = `${systemPrompt}
 
 Previous conversation:
@@ -81,7 +76,6 @@ Tutor:`;
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     
-    // Check for specific error types
     if (error.message?.includes('API_KEY_INVALID')) {
       return NextResponse.json(
         { error: 'Invalid API key. Please check your GEMINI_API_KEY in .env.local' },

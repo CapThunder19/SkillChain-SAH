@@ -4,7 +4,6 @@ import { PROGRAM_ID, RPC_ENDPOINT } from './constants';
 import IDLJson from './idl/tutor_project.json';
 
 export function getProgram(connection: Connection, wallet: any) {
-  // Create a proper wallet wrapper for Anchor Provider
   const walletAdapter = {
     get publicKey() {
       return wallet?.publicKey || null;
@@ -28,7 +27,6 @@ export function getProgram(connection: Connection, wallet: any) {
     }
   );
   
-  // Create program - address is in IDL
   const program = new Program(IDLJson as Idl, provider);
   
   return program;
